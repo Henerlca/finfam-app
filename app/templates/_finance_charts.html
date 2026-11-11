@@ -1,0 +1,44 @@
+{% macro waterfall_svg(chart) -%}
+{% if chart %}
+<figure class="chart-card finance-visual-chart" aria-labelledby="{{ chart.id }}-caption">
+  <figcaption id="{{ chart.id }}-caption">{{ chart.aria_label }}</figcaption>
+  <div class="finance-visual-scroll">
+    <svg class="finance-waterfall-svg" viewBox="{{ chart.view_box }}" role="img" aria-label="{{ chart.aria_label }}. Use a tabela detalhada para consultar valores exatos." xmlns="http://www.w3.org/2000/svg">
+      <title>{{ chart.aria_label }}</title>
+      {% for tick in chart.ticks %}<line class="finance-chart-grid" x1="{{ chart.plot.left }}" x2="{{ chart.plot.right }}" y1="{{ tick.y }}" y2="{{ tick.y }}"/><text class="finance-chart-y-label" x="{{ chart.plot.left - 8 }}" y="{{ tick.y + 4 }}" text-anchor="end">{{ tick.label }}</text>{% endfor %}
+      {% for connector in chart.connectors %}<line class="finance-chart-connector" x1="{{ connector.x1 }}" x2="{{ connector.x2 }}" y1="{{ connector.y }}" y2="{{ connector.y }}"/>{% endfor %}
+      {% for bar in chart.bars %}
+      <rect class="finance-waterfall-bar{% if bar.total %} waterfall-total{% endif %}" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}" rx="3" fill="{{ bar.color }}" fill-opacity="{{ bar.forecast_opacity }}"><title>{{ bar.title }}</title></rect>
+      {% if bar.confirmed_height > 0 and bar.confirmed_height < bar.height - 0.5 %}<rect class="finance-waterfall-confirmed" x="{{ bar.x }}" y="{{ bar.confirmed_y }}" width="{{ bar.width }}" height="{{ bar.confirmed_height }}" rx="3" fill="{{ bar.color }}"><title>Trecho confirmado no FinFam: {{ bar.confirmed_value|abs|brl }} · {{ bar.label }}</title></rect>{% endif %}
+      {% if not loop.first and not loop.last %}<circle cx="{{ bar.x + bar.width / 2 }}" cy="{{ chart.plot.bottom + 18 }}" r="4" fill="{{ '#1e5d78' if bar.status == 'Confirmado' else '#d09a48' if bar.status == 'Parcial' else '#b9c7d4' }}"><title>{{ bar.status }} · {{ bar.label }}</title></circle>{% endif %}
+      {% for line in bar.label_lines %}<text class="finance-chart-x-label" x="{{ bar.x + bar.width / 2 }}" y="{{ chart.height - 38 + (loop.index0 * 13) }}" text-anchor="middle">{{ line }}</text>{% endfor %}
+      {% endfor %}
+    </svg>
+  </div>
+  <ul class="finance-chart-legend" aria-label="Legenda da cascata">{% for item in chart.legend %}<li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="3" fill="{{ item.color }}" fill-opacity="{{ item.opacity|default(1) }}"/></svg>{{ item.label }}</li>{% endfor %}</ul>
+  <p class="chart-interaction-hint">Cor clara indica previsão; cor escura, baixa confirmada. Deslize para ver as etapas e, no computador, passe sobre cada barra para ver valores exatos.</p>
+</figure>
+{% endif %}
+{%- endmacro %}
+
+{% macro category_svg(chart) -%}
+{% if chart %}
+<figure class="chart-card finance-visual-chart" aria-labelledby="{{ chart.id }}-caption">
+  <figcaption id="{{ chart.id }}-caption">{{ chart.aria_label }}</figcaption>
+  <div class="finance-visual-scroll category-desktop-chart">
+    <svg class="finance-category-svg" viewBox="{{ chart.view_box }}" role="img" aria-label="{{ chart.aria_label }}. A tabela detalhada informa todos os valores." xmlns="http://www.w3.org/2000/svg">
+      <title>{{ chart.aria_label }}</title>
+      {% for tick in chart.grid %}<line class="finance-chart-grid" x1="{{ tick.x }}" x2="{{ tick.x }}" y1="{{ chart.plot.top - 12 }}" y2="{{ chart.plot.bottom }}"/><text class="finance-chart-y-label" x="{{ tick.x }}" y="{{ chart.height - 4 }}" text-anchor="middle">{{ tick.label }}</text>{% endfor %}
+      {% for category in chart.categories %}<text class="finance-category-label" x="8" y="{{ category.y }}">{{ category.label|truncate(28, True, '…') }}</text>{% endfor %}
+      {% for bar in chart.bars %}{% if bar.value > 0 %}<rect class="finance-category-bar" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}" rx="5" fill="{{ bar.color }}"><title>{{ bar.title }}</title></rect><text class="finance-category-value" x="{{ bar.value_x }}" y="{{ bar.y + 10 }}" text-anchor="{{ bar.value_anchor }}">{{ bar.value_label }}</text>{% endif %}{% endfor %}
+    </svg>
+  </div>
+  <div class="category-mobile-list" aria-label="Comparação categórica móvel">
+    {% for item in chart.mobile_categories %}<article class="category-mobile-card"><strong>{{ item.category }}</strong>{% for series in item.series %}<div class="category-mobile-series"><span>{{ series.label }}</span><svg class="category-mobile-track" viewBox="0 0 100 8" role="img" aria-label="{{ item.category }} · {{ series.label }}: {{ series.value|brl }}"><rect x="0" y="0" width="100" height="8" rx="4" fill="#edf2f6"/><rect x="0" y="0" width="{{ series.width }}" height="8" rx="4" fill="{{ series.color }}"/></svg><b>{{ series.value|brl }}</b></div>{% endfor %}</article>{% endfor %}
+  </div>
+  <ul class="finance-chart-legend" aria-label="Legenda das categorias">{% for item in chart.legend %}<li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="3" fill="{{ item.color }}"/></svg>{{ item.label }}</li>{% endfor %}</ul>
+  <p class="chart-interaction-hint category-desktop-hint">No computador, passe sobre as barras para ver valores exatos. “Confirmado” significa baixa registrada no FinFam.</p>
+  <p class="chart-interaction-hint category-mobile-hint">Cada linha mostra o valor exato; compare o tamanho das barras. “Confirmado” significa baixa registrada no FinFam.</p>
+</figure>
+{% endif %}
+{%- endmacro %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_chart.html" import chart_svg %}
+{% block content %}
+<section class="metric-row">
+  <article class="metric-card metric-focus"><span class="eyebrow">Reservado em {{ month_name }}</span><strong>{{ data.totals.reserved|brl }}</strong></article>
+  <article class="metric-card"><span class="eyebrow">Uso na projeção mensal</span><strong>{{ data.totals.used|brl }}</strong></article>
+  <article class="metric-card {% if data.totals.available < 0 %}metric-risk{% endif %}"><span class="eyebrow">Disponível / excedente</span><strong>{{ data.totals.available|brl }}</strong></article>
+</section>
+
+<section class="section-block panel reserve-pace-panel" aria-labelledby="reserve-pace-title">
+  <div class="section-heading">
+    <div><p class="eyebrow">Competência do orçamento/ciclo · {{ month_name }}</p><h2 id="reserve-pace-title">Consumo das reservas</h2></div>
+    <span class="status-pill {% if daily_reserve.percent is not none and daily_reserve.percent > 100 %}status-risk{% else %}status-neutral{% endif %}">
+      {% if daily_reserve.percent is not none %}{{ '%.1f'|format(daily_reserve.percent)|replace('.', ',') }}% do reservado consumido{% else %}Sem reserva prevista{% endif %}
+    </span>
+  </div>
+  <div class="metric-row reserve-pace-metrics">
+    <article class="metric-card metric-focus"><span class="eyebrow">Uso no ciclo orçamentário</span><strong>{{ daily_reserve.used|brl }}</strong></article>
+    <article class="metric-card"><span class="eyebrow">Total reservado</span><strong>{{ daily_reserve.reserved_total|brl }}</strong></article>
+  </div>
+  {% if not daily_reserve.integrity_ok %}<p class="alert alert-warning">Os detalhes do ciclo não conferem com o total do motor; a curva foi ocultada.</p>{% endif %}
+  {% if daily_reserve_chart %}{{ chart_svg(daily_reserve_chart) }}{% endif %}
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Essenciais, lazer e escolhas</p><h2>Reservas da família</h2></div><a class="button button-primary" href="/transactions/new">＋ Registrar reserva ou gasto</a></div>
+  {% if pot_groups %}
+  <div class="pot-group-list">
+    {% for group in pot_groups %}
+    <section class="pot-group">
+      <h3>{{ group.name }}</h3>
+      <div class="pot-cards">
+        {% for row in group.rows %}
+        <article class="pot-card">
+          <div class="pot-card-heading">
+            <div><strong>{{ row.display_name }}</strong><small>Reservado {{ row.reserved|brl }}</small></div>
+            <span class="status-pill {% if row.available < 0 %}status-risk{% else %}status-good{% endif %}">{{ 'Acima do reservado' if row.available < 0 else 'Dentro do valor' }}</span>
+          </div>
+          <div class="pot-progress-labels"><span>Usado <strong>{{ row.used|brl }}</strong></span><span>Disponível <strong class="{{ 'negative' if row.available < 0 else 'positive' }}">{{ row.available|brl }}</strong></span></div>
+          <progress class="pot-progress" max="100" value="{{ row.used_percent|round }}" aria-label="{{ row.display_name }}: {{ row.used_percent|round }} por cento usado"></progress>
+          <details class="pot-usage-details">
+            <summary>Ver {{ row.usage_details|length }} movimentação(ões) que compõem “Usado”</summary>
+            {% if row.usage_details %}
+            <div class="pot-usage-list">
+              {% for item in row.usage_details %}
+              <article class="pot-usage-item">
+                <div><strong>{{ item.description }}</strong><small>{{ item.date|day }} · {{ item.category or item.type }} · {{ item.member }} · {{ item.account }}</small>
+                  {% if item.installment_count > 1 %}<small>{{ item.unit_amount|brl }} por parcela × {{ item.installment_count }} parcelas</small>{% endif %}
+                </div>
+                <strong class="pot-usage-amount">{{ item.amount|brl }}</strong>
+              </article>
+              {% endfor %}
+              <div class="pot-usage-total"><span>Soma detalhada</span><strong>{{ row.used|brl }}</strong></div>
+              {% if not row.usage_detail_matches %}<p class="alert alert-warning">O detalhamento não confere com o total do motor. Revise os vínculos antes de usar este total.</p>{% endif %}
+            </div>
+            {% else %}<p class="muted">Nenhuma movimentação vinculada compõe o uso deste mês.</p>{% endif %}
+          </details>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty-state panel"><h2>Sem reservas ativas</h2><p>Registre uma reserva para acompanhar o consumo por nome.</p></div>{% endif %}
+</section>
+{% endblock %}

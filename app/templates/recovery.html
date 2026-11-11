@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+{% if error %}<div class="alert alert-warning" role="alert"><strong>Operação não concluída.</strong><span>{{ error }}</span></div>{% endif %}
+{% if notice %}<div class="alert alert-good" role="status"><strong>{{ notice }}</strong></div>{% endif %}
+
+<section class="panel">
+  <div class="section-heading">
+    <div><p class="eyebrow">Visão compartilhada</p><h2>Alterações recentes da família</h2></div>
+  </div>
+  <p class="muted">Este histórico é compartilhado e não identifica qual aparelho ou pessoa fez cada alteração.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Quando</th><th>O que mudou</th><th>Detalhe</th><th>Ação</th></tr></thead>
+      <tbody>
+      {% for event in events %}
+        <tr>
+          <td>{{ event.when or '—' }}</td>
+          <td><strong>{{ event.action_label }}</strong>{% if event.undone_at %}<small class="block muted">Desfeito em {{ event.undone_at }}</small>{% endif %}</td>
+          <td>{{ event.subject }}{% if event.detail %}<small class="block muted">{{ event.detail }}</small>{% endif %}</td>
+          <td>
+            {% if event.undoable %}
+            <form method="post" action="/activity/{{ event.id }}/undo" class="inline-form">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <button class="button button-secondary" type="submit">Desfazer</button>
+            </form>
+            {% elif event.undone_at %}<span class="muted">Concluído</span>
+            {% else %}<span class="muted">Prazo encerrado</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty-cell">As próximas alterações salvas aparecerão aqui.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <p class="eyebrow">Restauração segura</p>
+  <h2>Validar um backup privado</h2>
+  <p>O arquivo precisa ser <code>finfam-backup-v1</code>, JSON UTF-8 e ter no máximo {{ (max_backup_bytes // 1048576) }} MiB. A prévia não grava nada.</p>
+  <form method="post" action="/recovery/preview" enctype="multipart/form-data" class="stack-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label for="backup_file">Arquivo JSON de backup</label>
+    <input id="backup_file" name="backup_file" type="file" accept="application/json,.json" required>
+    <div class="form-actions"><button class="button button-secondary" type="submit">Validar e mostrar prévia</button></div>
+  </form>
+</section>
+
+{% if preview %}
+<section class="panel">
+  <p class="eyebrow">Prévia validada</p>
+  <h2>{{ preview.transactions }} lançamento(s) serão restaurados</h2>
+  <div class="detail-grid">
+    <div><strong>{{ preview.accounts }}</strong><small>contas</small></div>
+    <div><strong>{{ preview.cards }}</strong><small>cartões</small></div>
+    <div><strong>{{ preview.lookups }}</strong><small>valores de listas</small></div>
+    <div><strong>{{ preview.cashflow_status }}</strong><small>baixas</small></div>
+    <div><strong>{{ preview.month_closure }}</strong><small>fechamentos</small></div>
+    <div><strong>{{ preview.legacy_status }}</strong><small>status legados</small></div>
+    <div><strong>{{ preview.budget_adjustments }}</strong><small>ajuste(s) de orçamento</small></div>
+  </div>
+  <div class="alert alert-warning"><strong>Atenção: esta ação substitui a base financeira coberta pelo backup.</strong><span>Um snapshot da base atual será criado antes e poderá ser revertido. Notificações e o histórico de recuperação ficam preservados.</span></div>
+  <form method="post" action="/recovery/restore" enctype="multipart/form-data" class="stack-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="preview_token" value="{{ preview_token }}">
+    <label for="restore_backup_file">Envie novamente o mesmo arquivo JSON</label>
+    <input id="restore_backup_file" name="backup_file" type="file" accept="application/json,.json" required>
+    <label for="restore_confirmation">Digite exatamente <strong>{{ restore_confirmation }}</strong></label>
+    <input id="restore_confirmation" name="confirmation" type="text" autocomplete="off" required>
+    <div class="form-actions"><button class="button button-primary" type="submit">Substituir base financeira</button></div>
+  </form>
+</section>
+{% endif %}
+
+{% if snapshots %}
+<section class="panel">
+  <p class="eyebrow">Snapshots reversíveis</p>
+  <h2>Backups de segurança</h2>
+  <p class="muted">Cada restauração cria um snapshot anterior. O rollback também cria um novo snapshot antes de substituir os dados.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Quando</th><th>Tipo</th><th>Status</th><th>Rollback</th></tr></thead>
+      <tbody>
+      {% for snapshot in snapshots %}
+        <tr>
+          <td>{{ snapshot.created_at }}</td><td>{{ snapshot.kind }}</td><td>{{ snapshot.status }}</td>
+          <td>
+            <form method="post" action="/recovery/snapshots/{{ snapshot.id }}/rollback" class="stack-form">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <input name="confirmation" type="text" autocomplete="off" placeholder="{{ rollback_confirmation }}" aria-label="Confirmação do rollback">
+              <button class="button button-secondary" type="submit">Reverter para este snapshot</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

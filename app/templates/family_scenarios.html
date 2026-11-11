@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_chart.html" import chart_svg %}
+{% block content %}
+{% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+<form method="get" action="/scenarios" class="panel scenario-form">
+  <div class="section-heading"><div><p class="eyebrow">Planejamento informativo</p><h2>Teste uma mudança sem gravar</h2></div><span class="status-pill status-neutral">Sem lançamento</span></div>
+  <div class="form-grid compact-grid">
+    <label>Tipo de cenário
+      <select name="kind" data-scenario-kind>
+        <option value="income" {% if kind == 'income' %}selected{% endif %}>Renda</option>
+        <option value="expense" {% if kind == 'expense' %}selected{% endif %}>Consumo</option>
+        <option value="savings" {% if kind == 'savings' %}selected{% endif %}>Contribuição de poupança</option>
+      </select>
+    </label>
+    <label>Mudança<select name="direction"><option value="increase" {% if direction != 'decrease' %}selected{% endif %}>Aumentar</option><option value="decrease" {% if direction == 'decrease' %}selected{% endif %}>Reduzir</option></select></label>
+    <label>Grupo do consumo <span class="optional">(informativo)</span>
+      <select name="group">
+        <option value="essential" {% if group == 'essential' %}selected{% endif %}>Essencial</option>
+        <option value="leisure" {% if group == 'leisure' %}selected{% endif %}>Lazer / discricionário</option>
+      </select>
+    </label>
+    <label>Valor mensal (R$)<input type="number" name="amount" min="0" step="0.01" value="{{ amount if amount else '' }}" placeholder="300.00"></label>
+    <label>Início<input type="month" name="scenario_month" value="{{ scenario_month|default(month|default('')) }}"></label>
+    <label>Duração (meses)<input type="number" name="months" min="1" max="240" value="{{ duration|default(months|default(1)) }}"></label>
+    <input type="hidden" name="month" value="{{ month|default('') }}"><input type="hidden" name="person" value="{{ person|default('Família') }}">
+    <input type="hidden" name="horizon" value="{{ chart_horizon|default('12') }}">
+  </div>
+  <div class="form-actions"><button class="button button-primary" type="submit">Comparar cenário</button><a class="button button-quiet" href="{{ scoped('/scenarios') }}">Limpar</a></div>
+  <p class="simulation-assumption">Simulação temporária · não cria lançamentos nem altera reservas.</p>
+</form>
+
+{% if result %}
+  {% if kind == 'expense' %}<p class="eyebrow">Consumo {{ 'essencial' if group == 'essential' else 'de lazer e escolhas' }} · {{ 'redução' if direction == 'decrease' else 'aumento' }}</p>{% endif %}
+  <section class="metric-row scenario-end-balances">
+    <article class="metric-card"><span class="eyebrow">Base · último mês visível</span><strong>{{ result.summary.base_ending_balance|brl if result.summary.base_ending_balance is not none else '—' }}</strong><small>{{ result.summary.month|month_label if result.summary.month else 'Sem projeção' }}</small></article>
+    <article class="metric-card {% if result.summary.alternative_ending_balance is not none and result.summary.alternative_ending_balance < result.floor %}metric-risk{% else %}metric-positive{% endif %}"><span class="eyebrow">Alternativa · último mês visível</span><strong>{{ result.summary.alternative_ending_balance|brl if result.summary.alternative_ending_balance is not none else '—' }}</strong><small>Folga até o piso: {{ (result.summary.alternative_ending_balance - result.floor)|brl if result.summary.alternative_ending_balance is not none else '—' }}</small></article>
+    <article class="metric-card metric-focus"><span class="eyebrow">Efeito mensal</span><strong>{{ result.monthly_effect|brl }}</strong><small>{{ 'Renda extra' if result.kind == 'income' else 'Saída informativa' }}</small></article>
+  </section>
+  <section class="section-block">
+  <div class="section-heading chart-section-heading"><div><p class="eyebrow">Saldo bancário e piso</p><h2>Base versus alternativa</h2></div></div>
+    {{ chart_svg(result.chart) }}
+  </section>
+  <section class="section-block">
+    <div class="section-heading"><div><p class="eyebrow">{{ result.compare|length }} competências</p><h2>Resultado mensal</h2></div><span class="status-pill status-neutral">Previsto</span></div>
+    <div class="table-scroll"><table class="scenario-table"><thead><tr><th>Mês</th><th>Base · saldo mês</th><th>Alternativa · saldo mês</th><th>Base · saldo bancário</th><th>Alternativa · saldo bancário</th><th>Piso</th></tr></thead><tbody>
+      {% for row in result.compare %}<tr><th scope="row">{{ row.month|month_label }}<small class="table-status">{{ 'Fechado' if row.closed else 'Previsto' }}</small></th><td class="{{ 'negative' if row.base_ae < 0 else 'positive' }}">{{ row.base_ae|brl }}</td><td class="{{ 'negative' if row.alternative_ae < 0 else 'positive' }}">{{ row.alternative_ae|brl }}</td><td>{{ row.base_ag|brl }}</td><td><strong>{{ row.alternative_ag|brl }}</strong></td><td>{{ row.floor|brl }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  <p class="simulation-assumption">{{ result.note }}</p>
+{% else %}
+  <div class="empty-state panel"><h2>Compare antes de decidir</h2><p>Informe o tipo, valor, início e duração. O resultado mostra base, alternativa e piso sem alterar seus dados.</p></div>
+{% endif %}
+{% endblock %}

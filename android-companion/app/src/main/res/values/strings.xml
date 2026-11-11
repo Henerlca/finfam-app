@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">FinFam leitor</string>
+    <string name="notification_listener_label">FinFam leitor de transações</string>
+    <string name="app_description">Companion opcional para sugerir rascunhos de transações a partir de notificações selecionadas.</string>
+</resources>

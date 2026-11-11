@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+def configuredBackendUrl = (project.findProperty('FINFAM_BACKEND_URL') ?: 'https://example.invalid')
+        .toString().trim().replaceAll('/+$', '')
+if (!configuredBackendUrl.startsWith('https://')) {
+    throw new GradleException('FINFAM_BACKEND_URL precisa ser HTTPS.')
+}
+def escapedBackendUrl = configuredBackendUrl.replace('\\', '\\\\').replace('"', '\\"')
+
+android {
+    namespace 'com.finfam.companion'
+    compileSdk 35
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    defaultConfig {
+        applicationId 'com.finfam.companion'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        buildConfigField 'String', 'API_BASE_URL', "\"${escapedBackendUrl}\""
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+// O companion usa somente APIs do Android; não há dependências externas de UI ou rede.

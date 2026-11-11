@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>Menos digitação, sempre com sua aprovação</h2>
+  <p>O leitor Android reconhece alertas dos apps que você escolher. Confira cada sugestão antes de salvar. A PWA sozinha não lê notificações do celular.</p>
+  <form method="post" action="/notificacoes/parear">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button type="submit" class="button button-primary">Conectar leitor Android</button>
+  </form>
+  <p class="muted">Diagnóstico do APK instalado: confira no Android a permissão de acesso às notificações; no companion, confirme a allowlist de pacotes; confira o pareamento salvo localmente; então gere uma notificação de teste no app financeiro. Esta página só comprova o último envio recebido pelo servidor — não verifica a permissão Android nem uma conexão em tempo real.</p>
+</section>
+<section class="section-block">
+  <div class="section-heading"><h2>Sugestões para conferir</h2><span class="status-pill">{{ drafts|length }} pendente(s)</span></div>
+  <div class="cash-list">
+  {% for row in drafts %}
+    <article class="panel">
+      <div class="section-heading"><div><h3>{{ row.merchant }}</h3><small>{{ row.date|day }} · {{ row.type_hint }}{% if row.installment_count and row.installment_count > 1 %} · {{ row.installment_count }} parcelas{% endif %}</small></div><strong>{{ row.amount|brl }}</strong></div>
+      <div class="form-actions">
+        <a class="button button-primary" href="{{ scoped('/notificacoes/' ~ row.id ~ '/revisar') }}">Conferir e completar</a>
+        <form method="post" action="/notificacoes/{{ row.id }}/descartar"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="_context_month" value="{{ context_month }}"><input type="hidden" name="_context_person" value="{{ context_person }}"><input type="hidden" name="_context_horizon" value="{{ context_horizon }}"><button class="button button-quiet" type="submit">Descartar</button></form>
+      </div>
+    </article>
+  {% else %}<div class="empty-state panel"><h3>Nenhuma sugestão pendente</h3><p>Alertas reconhecidos pelo leitor aparecerão aqui. Nenhum alerta cria despesas sozinho.</p></div>{% endfor %}
+  </div>
+</section>
+<section class="section-block panel"><h2>Celulares pareados</h2>
+  <p class="muted">“Pareado/ativo no servidor” indica apenas que a credencial não foi revogada. O servidor não recebe heartbeat explícito: “última notificação recebida” muda somente quando chega um evento.</p>
+  {% for device in devices %}<div class="settings-row"><strong>{{ device.name }}</strong><span>{{ 'Pareado/ativo no servidor' if device.active else 'Revogado no servidor' }}</span>
+    <div><span>Última notificação recebida: {{ device.last_seen|default('Nunca', true) }}</span><br><span>{{ device.pending_count }} rascunho(s) pendente(s) deste aparelho</span></div>
+    {% if device.active %}<form method="post" action="/notificacoes/dispositivos/{{ device.id }}/revogar"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="confirmation" value="revoke"><input type="hidden" name="_context_month" value="{{ context_month }}"><input type="hidden" name="_context_person" value="{{ context_person }}"><input type="hidden" name="_context_horizon" value="{{ context_horizon }}"><button type="submit" class="button button-quiet">Desconectar</button></form>{% endif %}
+  </div>{% else %}<p class="muted">Nenhum leitor pareado.</p>{% endfor %}
+</section>
+{% endblock %}

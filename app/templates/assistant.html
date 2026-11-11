@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% set prefs = preferences|default({}, true) %}
+{% block content %}
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<section class="panel assistant-ai">
+  <p class="eyebrow">Assistente financeiro da família</p>
+  <h2>Ajuda no contexto em que você estiver</h2>
+  <p>Converse sobre despesas, receitas, cartões, reservas, metas e o planejamento inteiro. Sugestões de novos lançamentos ou edições abrem uma revisão editável — nada é salvo sem sua confirmação.</p>
+  {% if ai_enabled %}<button class="button button-primary" type="button" data-assistant-open>Abrir conversa</button>
+  {% else %}<div class="alert alert-warning">A consulta por IA está indisponível neste ambiente. As demais funções continuam funcionando.</div>{% endif %}
+  {% if ai_answer %}<div class="ai-answer" role="status">{{ ai_answer }}</div>{% endif %}
+</section>
+<section class="section-block panel assistant-preferences">
+  <h2>Como você prefere receber ajuda</h2>
+  <form method="post" action="/assistente/preferencias" class="assistant-ai-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="_context_month" value="{{ nav_context.month }}"><input type="hidden" name="_context_person" value="{{ nav_context.person }}"><input type="hidden" name="_context_horizon" value="{{ nav_context.horizon }}">
+    <label>Prioridades<textarea name="priorities" maxlength="240" placeholder="Ex.: manter folga mensal e reduzir dívidas">{{ prefs.get('priorities', '') }}</textarea></label>
+    <label>Metas protegidas<textarea name="protected_goals" maxlength="240" placeholder="Ex.: preservar a reserva de emergência">{{ prefs.get('protected_goals', '') }}</textarea></label>
+    <label>Detalhe da resposta<select name="response_style"><option value="concise" {% if prefs.get('response_style', 'concise') == 'concise' %}selected{% endif %}>Concisa</option><option value="detail" {% if prefs.get('response_style') == 'detail' %}selected{% endif %}>Detalhada</option></select></label>
+    <div class="form-actions"><button class="button button-secondary" type="submit">Salvar preferências</button><button class="button button-quiet" type="submit" name="reset" value="1">Limpar preferências</button></div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% set context = nav_context|default({}, true) %}
+{% set context_month = context.month|default(month|default(month_filter|default('', true), true), true) %}
+{% set context_person = context.person|default(person|default('Família', true), true) %}
+{% set context_horizon = context.horizon|default(horizon|default('12', true), true) %}
+{% set clean_nav_query = nav_query|default('', true)|replace('?', '', 1) %}
+{% set transaction_return_query = 'return_page=transactions' %}
+{% if movement_month %}{% set transaction_return_query = transaction_return_query ~ '&return_month=' ~ (movement_month|urlencode) %}{% endif %}
+{% block content %}
+<div class="movement-toolbar">
+  <p>{% if movement_month %}Competência {{ movement_month }} · {% else %}Todas as competências · {% endif %}{{ results_count|default(0) }} resultado(s) · mais recentes primeiro</p>
+  <a class="button button-primary" href="/transactions/new{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}">＋ Novo</a>
+</div>
+
+<details class="panel movement-filters" {% if query or type_filter or movement_month or bank_filter or card_filter or member_filter %}open{% endif %}>
+  <summary>Buscar ou filtrar movimentações</summary>
+  <form class="filter-bar movement-filter-form" method="get" action="/transactions">
+    <label>Buscar<input type="search" name="q" value="{{ query|default('', true) }}" placeholder="Descrição ou categoria"></label>
+    <label>Competência<input type="month" name="movement_month" value="{{ movement_month|default('', true) }}"></label>
+    <label>Conta<select name="bank"><option value="">Todas</option>{% for item in banks|default([], true) %}<option value="{{ item }}" {% if item == bank_filter|default('', true) %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label>Cartão<select name="card"><option value="">Todos</option>{% for item in cards|default([], true) %}<option value="{{ item.name }}" {% if item.name == card_filter|default('', true) %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></label>
+    <label>Tipo<select name="type"><option value="">Todos</option>{% for item in types|default([], true) %}<option value="{{ item }}" {% if item == type_filter|default('', true) %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label>Membro na lista<select name="movement_member"><option value="">Todos no contexto</option>{% for item in members|default([], true) %}<option value="{{ item }}" {% if item == member_filter|default('', true) %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <input type="hidden" name="month" value="{{ context_month }}"><input type="hidden" name="person" value="{{ context_person }}"><input type="hidden" name="horizon" value="{{ context_horizon }}">
+    <div class="form-actions"><button class="button button-secondary" type="submit">Aplicar filtros</button><a class="button button-quiet" href="{{ scoped('/transactions') }}">Limpar</a></div>
+  </form>
+</details>
+
+<div class="transactions-desktop table-scroll">
+  <table><thead><tr><th aria-label="Categoria"></th><th>Data</th><th>Movimentação</th><th>Conta/cartão</th><th>Valor</th><th>Ações</th></tr></thead><tbody>
+  {% for row in rows|default([], true) %}
+  <tr>
+    <td><span class="movement-icon movement-icon-{{ row.visual.tone }}" role="img" aria-label="{{ row.visual.label }}">{{ row.visual.icon }}</span></td>
+    <td>{{ row.transaction_date|day }}</td>
+    <td><div class="movement-description"><strong>{{ row.description }}</strong><small><span class="impact-chip impact-{{ row.visual.impact_tone }}" aria-label="{{ row.visual.impact_label }}">{{ row.visual.impact_symbol }}</span> {{ row.category or row.type }} · {{ row.member }}{% if row.type == 'Parcelado' %} · {% if row.installment_number %}parcela {{ row.installment_number }} de {{ row.installment_count }}{% else %}{{ row.installment_count }} parcelas{% endif %}{% endif %}{% if row.type == 'Parcelado' %} · total {{ row.total_amount|brl }}{% endif %}</small></div></td>
+    <td>{{ row.account_card }}</td><td><strong>{{ row.amount|brl }}</strong></td>
+    <td><div class="row-actions"><a href="/transactions/new?duplicate_id={{ row.id }}&amp;{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}{{ transaction_return_query }}" class="text-link">Duplicar</a><a href="/transactions/{{ row.id }}/edit?{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}{{ transaction_return_query }}" class="text-link">Editar</a>{% if row.type in ['Receita', 'Fixo', 'Reserva', 'Caixinha', 'Saque Caixinha', 'Transferência'] and (row.end_month is none or row.end_month != row.start_month) %}<a href="/transactions/{{ row.id }}/occurrence{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}" class="text-link">Só esta competência</a>{% endif %}<a href="/transactions/{{ row.id }}/delete?{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}{{ transaction_return_query }}" class="text-link negative">Excluir</a></div></td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="empty-cell">Nenhum lançamento encontrado.</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+
+<div class="transactions-mobile-list" aria-label="Lista de movimentações">
+  {% for row in rows|default([], true) %}
+  <article class="transaction-card panel">
+    <div class="movement-card-header transaction-card-top">
+      <span class="movement-icon movement-icon-{{ row.visual.tone }}" role="img" aria-label="{{ row.visual.label }}">{{ row.visual.icon }}</span>
+      <div class="movement-description"><strong>{{ row.description }}</strong><small><span class="impact-chip impact-{{ row.visual.impact_tone }}" aria-label="{{ row.visual.impact_label }}">{{ row.visual.impact_symbol }}</span> {{ row.category or row.type }} · {{ row.transaction_date|day }}</small></div>
+      <strong class="transaction-card-amount">{{ row.amount|brl }}</strong>
+    </div>
+    <dl class="transaction-card-details">
+      <div><dt>Tipo</dt><dd>{{ row.type }}</dd></div>
+      <div><dt>Membro</dt><dd>{{ row.member }}</dd></div>
+      <div><dt>Conta/cartão</dt><dd>{{ row.account_card }}</dd></div>
+      {% if row.type == 'Parcelado' %}<div><dt>Parcela</dt><dd>{% if row.installment_number %}{{ row.installment_number }} de {{ row.installment_count }}{% else %}{{ row.installment_count }} parcelas{% endif %} · total {{ row.total_amount|brl }}</dd></div>{% endif %}
+    </dl>
+    <div class="transaction-card-actions"><a href="/transactions/new?duplicate_id={{ row.id }}&amp;{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}{{ transaction_return_query }}" class="text-link">Duplicar</a><a href="/transactions/{{ row.id }}/edit?{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}{{ transaction_return_query }}" class="text-link">Editar</a>{% if row.type in ['Receita', 'Fixo', 'Reserva', 'Caixinha', 'Saque Caixinha', 'Transferência'] and (row.end_month is none or row.end_month != row.start_month) %}<a href="/transactions/{{ row.id }}/occurrence{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}" class="text-link">Só esta competência</a>{% endif %}<a href="/transactions/{{ row.id }}/delete?{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}{{ transaction_return_query }}" class="text-link negative">Excluir</a></div>
+  </article>
+  {% else %}<div class="empty-state panel"><h2>Nenhum lançamento encontrado</h2><p>Limpe os filtros ou registre uma nova movimentação.</p></div>{% endfor %}
+</div>
+
+<div class="pagination">
+  <span>Página {{ page|default(1) }} de {{ pages|default(1) }}</span>
+  {% if page|default(1) > 1 %}<a class="button button-secondary" href="/transactions?{{ filter_query|default('', true) }}{% if filter_query|default('', true) %}&amp;{% endif %}page={{ page - 1 }}">Anterior</a>{% endif %}
+  {% if page|default(1) < pages|default(1) %}<a class="button button-secondary" href="/transactions?{{ filter_query|default('', true) }}{% if filter_query|default('', true) %}&amp;{% endif %}page={{ page + 1 }}">Próxima</a>{% endif %}
+</div>
+{% endblock %}

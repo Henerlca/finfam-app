@@ -1,0 +1,59 @@
+/* Revisão cotidiana v5: identidade azul, confirmação explícita e leitura móvel. */
+.daily-review{margin-top:24px;padding:clamp(16px,3vw,24px);border-color:#cbd9e2;box-shadow:0 12px 30px rgba(22,59,64,.07)}
+.daily-review-heading{align-items:flex-start;margin-bottom:12px}
+.daily-review-heading h2{font-size:clamp(20px,3vw,26px);color:var(--petrol);letter-spacing:-.025em;margin:0 0 4px}
+.daily-review-intro{margin:0;color:var(--muted);font-size:12px;max-width:650px}
+.daily-review-context{display:inline-flex;align-items:center;border:1px solid #cbd9e2;border-radius:999px;background:#eef4f8;color:var(--petrol);padding:6px 10px;font-size:11px;font-weight:750;white-space:nowrap}
+.daily-review-notice{margin:12px 0;border-color:#cbdde9;background:#edf5fa;color:var(--petrol);grid-template-columns:auto 1fr;align-items:center}
+.daily-review-notice .text-link{color:var(--petrol);margin-left:4px}
+.daily-review-counts{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.daily-review-count{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;background:#f7f9fa;color:var(--muted);padding:6px 10px;font-size:11px}
+.daily-review-count strong{color:var(--petrol);font-size:14px;font-variant-numeric:tabular-nums}
+.daily-review-count-confirmed{border-color:#cbdde9;background:#edf5fa}
+.daily-review-count-pending{border-color:#ecd9b7;background:#fff8eb}
+.daily-review-count-predicted{background:#f2f4f3}
+.daily-review-filters{display:grid;grid-template-columns:minmax(160px,1.5fr) minmax(140px,1fr) minmax(140px,1fr) auto;align-items:end;gap:9px;padding:12px;margin:0 0 14px;border:1px solid var(--line);border-radius:13px;background:#f8fafb}
+.daily-review-filters label{display:grid;gap:5px;min-width:0;font-size:10px;color:var(--muted);font-weight:750}
+.daily-review-filters input,.daily-review-filters select{width:100%;min-height:38px;padding:7px 9px;border:1px solid #d5e0e7;border-radius:9px;background:#fff;color:var(--ink);font-size:12px}
+.daily-review-batch{display:grid;gap:10px}
+.daily-review-batch-head{display:flex;justify-content:space-between;align-items:end;gap:12px;padding:10px 0 2px}
+.daily-review-batch-head .check-label{font-size:12px!important}
+.daily-review-paid-date{display:grid;gap:4px;min-width:170px;color:var(--muted);font-size:10px;font-weight:700}
+.daily-review-paid-date input,.daily-review-item-form input[type=date]{min-height:34px;padding:6px 8px;border:1px solid #d5e0e7;border-radius:8px;background:#fff;color:var(--ink);font-size:12px}
+.daily-review-note{margin:0;padding:9px 11px;border-left:3px solid var(--petrol-2);border-radius:0 9px 9px 0;background:#f1f6f9;color:var(--muted);font-size:11px}
+.daily-review-list{display:grid;gap:8px}
+.daily-review-item{display:grid;grid-template-columns:24px minmax(0,1fr) auto minmax(245px,.75fr);gap:11px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.daily-review,.daily-review-item{scroll-margin-top:calc(var(--finfam-header-height,150px) + 20px)}
+.daily-review-item:hover{border-color:#bfd1dd}
+.daily-review-item-confirmed{background:#fbfdff;border-color:#cbdde9}
+.daily-review-select{display:grid;place-items:center}
+.daily-review-select input{width:18px;height:18px;accent-color:var(--petrol)}
+.daily-review-select-empty{color:#b3bfbe;font-size:12px}
+.daily-review-item-main{display:grid;gap:2px;min-width:0}
+.daily-review-item-title{display:flex;align-items:center;gap:7px;min-width:0}
+.daily-review-item-title strong{overflow-wrap:anywhere;color:var(--ink)}
+.daily-review-item-main small{color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.daily-review-item-main .daily-review-date{font-size:10px}
+.daily-review-amount{color:var(--petrol);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.daily-review-item-actions{min-width:0}
+.daily-review-quick-link{white-space:nowrap;font-weight:650}
+.daily-review-item-actions .daily-review-quick-link{min-height:32px;display:inline-flex;align-items:center}
+.daily-review-item-form{display:grid;grid-template-columns:minmax(120px,1fr) auto;align-items:end;gap:8px}
+.daily-review-item-form .button{min-height:36px;padding:8px 10px;font-size:11px;white-space:nowrap}
+.daily-review-item-form .button-quiet{color:var(--petrol);border-color:#cbd9e2;background:#f1f6f9}
+.daily-review-batch-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:3px}
+.daily-review-batch-actions span{color:var(--muted);font-size:10px}
+.daily-review-empty{border:1px dashed #cbd9e2;background:#f8fafb;margin-top:2px}
+.daily-review-empty h3{margin:0 0 3px;color:var(--petrol);font-size:16px}
+.daily-review-empty p{margin:0;color:var(--muted);font-size:12px}
+@media(max-width:900px){.daily-review-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-review-filters button{grid-column:1/-1}.daily-review-item{grid-template-columns:24px minmax(0,1fr) auto}.daily-review-item-actions{grid-column:2/-1}.daily-review-item-form{grid-template-columns:minmax(150px,220px) auto;justify-content:start}}
+@media(max-width:600px){.daily-review{padding:14px;margin-top:18px}.daily-review-heading{display:grid;gap:8px}.daily-review-context{justify-self:start}.daily-review-filters{grid-template-columns:1fr;padding:10px}.daily-review-filters button{grid-column:auto;width:100%}.daily-review-batch-head{align-items:stretch;flex-direction:column}.daily-review-paid-date{min-width:0}.daily-review-item{grid-template-columns:22px minmax(0,1fr);gap:8px;padding:10px}.daily-review-amount{grid-column:2}.daily-review-item-actions{grid-column:1/-1}.daily-review-item-form{grid-template-columns:1fr;gap:7px}.daily-review-item-form .button{width:100%}.daily-review-batch-actions{display:grid}.daily-review-batch-actions .button{width:100%}.daily-review-counts{gap:6px}.daily-review-count{padding:5px 8px;font-size:10px}}
+@media(max-width:380px){.daily-review-item-title{align-items:flex-start;flex-direction:column;gap:4px}.daily-review-counts{display:grid;grid-template-columns:1fr 1fr}.daily-review-count:last-child{grid-column:1/-1}}
+
+.daily-review-group-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0 0;padding:8px 10px;border:1px solid #d6e2ea;border-radius:10px;background:#eef5fa;color:var(--petrol);font-size:12px;font-weight:800}
+.daily-review-group-heading>span:last-child{color:var(--muted);font-size:10px;font-weight:700}
+
+.daily-review-item-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.daily-review-item-actions .daily-review-item-form{flex:1 1 100%}
+
+.daily-balance-reconciliation{margin:18px 0;padding:clamp(14px,2.5vw,22px);border-color:#cbd9e2}.daily-balance-reconciliation>p{max-width:820px}.daily-balance-account-list{display:grid;gap:10px}.daily-balance-account{min-width:0;padding:14px;border:1px solid #d8e3eb;border-radius:14px;background:#fff}.daily-balance-account-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:9px}.daily-balance-account-heading>div{min-width:0}.daily-balance-account-heading strong{display:block;color:#173f68;overflow-wrap:anywhere}.daily-balance-account-heading small,.daily-balance-source{display:block;color:#647687;font-size:10px;overflow-wrap:anywhere}.daily-balance-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 5px}.daily-balance-values>div{min-width:0;padding:10px;border-radius:11px;background:#f3f8fb}.daily-balance-values small{display:block;color:#5d7283;font-size:10px}.daily-balance-values strong{display:block;margin-top:4px;color:#173f68;font-size:clamp(14px,2vw,19px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.daily-balance-values .daily-balance-difference{background:#eaf2f8}.daily-balance-details{margin-top:11px;border-top:1px solid #e0e8ee;padding-top:9px}.daily-balance-details>summary{color:#245578;font-size:12px;font-weight:750;cursor:pointer}.daily-balance-note,.daily-balance-entry-note{margin:7px 0;padding:8px 10px;border-radius:9px;background:#f1f6f9;color:#49677d;font-size:10px;overflow-wrap:anywhere}.daily-balance-note.warning{background:#fff6e7;color:#80541a}.daily-balance-group{margin-top:12px}.daily-balance-group h3{display:flex;justify-content:space-between;gap:10px;margin:0 0 7px;padding:7px 9px;border-radius:9px;background:#eef5fa;color:#1e4f73;font-size:11px}.daily-balance-group h3 span{color:#61788a}.daily-balance-entry-list{display:grid;gap:7px}.daily-balance-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:5px 9px;padding:10px;border:1px solid #e1e8ed;border-radius:10px;background:#fff}.daily-balance-entry-main{min-width:0}.daily-balance-entry-main strong{display:block;color:#193f5e;font-size:11px;overflow-wrap:anywhere}.daily-balance-entry-main small{display:block;color:#667989;font-size:10px;overflow-wrap:anywhere}.daily-balance-entry-amount{white-space:nowrap;color:#254f70;font-size:11px;font-variant-numeric:tabular-nums}.daily-balance-entry-note,.daily-balance-actions,.daily-balance-register,.daily-balance-entry>small,.daily-balance-entry>.text-link{grid-column:1/-1}.daily-balance-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}.daily-balance-actions .button,.daily-balance-register{min-height:36px;white-space:normal;font-size:10px}.daily-balance-entry>small{color:#647687;font-size:10px}.daily-balance-remaining{margin:12px 0 0;padding:9px 10px;border-radius:9px;background:#f0f5f8;color:#355671;font-size:11px}.daily-balance-empty{padding:13px;background:#f8fafb}.daily-balance-empty p{margin:5px 0 0;color:#647687;font-size:11px}.daily-balance-entry .text-link{font-size:10px}@media(max-width:650px){.daily-balance-values{grid-template-columns:1fr 1fr}.daily-balance-values .daily-balance-difference{grid-column:1/-1}.daily-balance-account{padding:11px}.daily-balance-account-heading{flex-direction:column}.daily-balance-actions{display:grid;grid-template-columns:1fr}.daily-balance-actions .button{width:100%}}

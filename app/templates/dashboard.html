@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "_chart.html" import chart_svg %}
+{% from "_finance_charts.html" import category_svg, waterfall_svg %}
+{% block content %}
+<section class="v5-dashboard-answer" aria-label="Resposta financeira do mês">
+  {% if person == 'Família' %}
+  <article class="metric-card v5-primary-answer {{ 'metric-risk' if current.monthly_balance_without_prior_impact < 0 else 'metric-positive' }}">
+    <span class="eyebrow">{{ 'Orçamento atribuído · quanto sobra ou falta no mês' if person != 'Família' else 'Quanto sobra ou falta no mês' }}</span>
+    <strong class="metric-number">{{ current.monthly_balance_without_prior_impact|brl }}</strong>
+    <small>{{ 'Resultado atribuído à pessoa; não é saldo literal da conta.' if person != 'Família' else 'Resultado mensal sem compromissos anteriores, para avaliar o orçamento.' }}</small>
+  </article>
+  {% endif %}
+  {% if person != 'Família' %}
+  <article class="metric-card metric-bank v5-primary-answer">
+    <span class="eyebrow">Saldo bancário confirmado</span>
+    <strong class="metric-number">{{ member_bank.confirmed_balance|brl if member_bank and member_bank.confirmed_balance is not none else '—' }}</strong>
+    <small>{% if member_bank and member_bank.is_observed %}Abertura calculada + baixas confirmadas do mês nas contas de {{ person }}. Confira no banco.{% else %}Só há saldo confirmado para o mês observado pelo app.{% endif %}</small>
+  </article>
+  <article class="metric-card metric-bank v5-primary-answer">
+    <span class="eyebrow">Saldo bancário previsto</span>
+    <strong class="metric-number">{{ member_bank.projected_balance|brl if member_bank else '—' }}</strong>
+    <small>{% if member_bank and member_bank.is_observed %}Inclui pendências de {{ current.month|month_label }}; nenhuma baixa é presumida.{% else %}Projeção para {{ current.month|month_label }}; confirme os valores no banco.{% endif %}</small>
+  </article>
+  {% else %}
+  <article class="metric-card metric-bank v5-primary-answer">
+    <span class="eyebrow">Saldo bancário projetado</span>
+    <strong class="metric-number">{{ current.projected_ending_balance|brl }}</strong>
+    <small>Projeção ao fim de {{ current.month|month_label }}; confirme o saldo no banco.</small>
+  </article>
+  {% endif %}
+</section>
+
+<details class="details-panel v5-secondary-metrics">
+  <summary>Ver outros indicadores do mês</summary>
+  <div class="metric-row" aria-label="Detalhes do equilíbrio financeiro">
+    {% if person != 'Família' %}
+    <article class="metric-card"><span class="eyebrow">Orçamento atribuído · variação do mês sem compromissos anteriores</span><strong>{{ current.monthly_balance_without_prior_impact|brl }}</strong><small>Variação mensal não é o saldo disponível na conta.</small></article>
+    <article class="metric-card"><span class="eyebrow">Orçamento atribuído · saldo no início</span><strong>{{ current.starting_balance|brl }}</strong></article>
+    <article class="metric-card"><span class="eyebrow">Orçamento atribuído · variação prevista</span><strong>{{ current.net_change|brl }}</strong></article>
+    <article class="metric-card {{ 'metric-risk' if current.monthly_balance_with_prior_impact < 0 else 'metric-focus' }}"><span class="eyebrow">Orçamento atribuído · resultado com compromissos anteriores</span><strong>{{ current.monthly_balance_with_prior_impact|brl }}</strong><small>Não aplicar o piso familiar à conta pessoal.</small></article>
+    {% else %}
+    <article class="metric-card"><span class="eyebrow">Saldo bancário no início</span><strong>{{ current.starting_balance|brl }}</strong></article>
+    <article class="metric-card"><span class="eyebrow">Variação prevista do caixa</span><strong>{{ current.net_change|brl }}</strong></article>
+    <article class="metric-card {{ 'metric-risk' if current.gap_to_minimum < 0 else 'metric-positive' }}"><span class="eyebrow">Folga para o piso</span><strong>{{ current.gap_to_minimum|brl }}</strong><small>Piso {{ current.minimum_balance|brl }}</small></article>
+    <article class="metric-card {{ 'metric-risk' if current.monthly_balance_with_prior_impact < 0 else 'metric-focus' }}"><span class="eyebrow">Resultado do mês com compromissos anteriores</span><strong>{{ current.monthly_balance_with_prior_impact|brl }}</strong><small>Inclui compromissos carregados de períodos anteriores.</small></article>
+    {% endif %}
+  </div>
+</details>
+
+<section class="section-block v5-attention-block">
+  <div class="section-heading v5-attention-heading"><div><p class="eyebrow">Acompanhamento</p><h2>O que precisa de atenção agora</h2></div><a class="text-link" href="/today?month={{ month }}&person={{ person }}&horizon={{ chart_horizon }}">Abrir Dia a dia →</a></div>
+  <div class="attention-list v5-attention-list">
+    {% set attention_state = namespace(count=0) %}
+    {% if person == 'Família' and attention.below_floor and attention_state.count < 3 %}
+    <article class="alert alert-danger v5-attention-item"><span><strong>Este mês está abaixo do piso</strong><br>Projeção abaixo de {{ current.minimum_balance|brl }} por {{ (current.gap_to_minimum * -1)|brl }}. O saldo ainda precisa ser confirmado no banco.</span><a class="text-link v5-attention-action" href="/today?month={{ month }}&person={{ person }}&horizon={{ chart_horizon }}">Conferir baixas</a></article>
+    {% set attention_state.count = attention_state.count + 1 %}
+    {% elif person == 'Família' and attention.first_below_floor and attention_state.count < 3 %}
+    <article class="alert alert-warning v5-attention-item"><span><strong>Risco futuro de caixa</strong><br>O saldo projetado cruza o piso de {{ current.minimum_balance|brl }} em {{ attention.first_below_floor.month|month_label }}.</span><a class="text-link v5-attention-action" href="/flow?month={{ month }}&person={{ person }}&horizon={{ chart_horizon }}">Abrir Fluxo</a></article>
+    {% set attention_state.count = attention_state.count + 1 %}
+    {% endif %}
+    {% if attention.pending_count and attention_state.count < 3 %}
+    <article class="alert alert-warning v5-attention-item"><span><strong>{{ attention.pending_count }} itens sem baixa</strong><br>{{ attention.pending_total|brl }} ainda não confirmados; isso não significa automaticamente que estejam vencidos.</span><a class="text-link v5-attention-action" href="/today?month={{ month }}&person={{ person }}&horizon={{ chart_horizon }}">Revisar no Dia a dia</a></article>
+    {% set attention_state.count = attention_state.count + 1 %}
+    {% endif %}
+    {% if attention.exceeded_pots and attention_state.count < 3 %}
+    <article class="alert alert-warning v5-attention-item"><span><strong>Reservas acima do valor previsto</strong><br>{% for pot in attention.exceeded_pots %}{{ pot.pot }}{% if not loop.last %}, {% endif %}{% endfor %}</span><a class="text-link v5-attention-action" href="/pots?month={{ month }}&person={{ person }}&horizon={{ chart_horizon }}">Revisar Potes</a></article>
+    {% set attention_state.count = attention_state.count + 1 %}
+    {% endif %}
+    {% if attention_state.count == 0 %}<article class="alert alert-good"><strong>Sem alertas prioritários</strong><span>Continue registrando baixas e lançamentos para manter a projeção atualizada.</span></article>{% endif %}
+  </div>
+</section>
+
+<section class="section-block dashboard-waterfall-block">
+  <div class="section-heading"><div><p class="eyebrow">{{ current.month|month_label }} · equilíbrio mensal</p><h2>Evolução do saldo</h2></div></div>
+  {{ waterfall_svg(waterfall_chart) }}
+  {% if waterfall_chart and not waterfall_chart.reconciled %}<div class="alert alert-warning finance-chart-warning" role="status"><strong>Conciliação visual indisponível.</strong><span>As etapas não fecharam com o saldo projetado; use os valores detalhados e não considere o desenho como conciliado.</span></div>{% endif %}
+  <details class="details-panel"><summary>Ver cada etapa e saldo acumulado</summary>
+    <div class="table-scroll"><table><thead><tr><th>Etapa</th><th>Movimento</th><th>Confirmado no FinFam</th><th>Saldo após etapa</th><th>Situação</th></tr></thead><tbody>
+    {% set waterfall_running = namespace(value=0) %}
+    {% for step in waterfall_steps %}
+      {% if step.kind == 'total' %}{% set waterfall_running.value = step.value %}{% else %}{% set waterfall_running.value = waterfall_running.value + step.value %}{% endif %}
+      <tr><th scope="row">{{ step.label }}</th><td>{{ step.value|brl }}</td><td>{{ '—' if step.kind == 'total' else step.confirmed_value|brl }}</td><td><strong>{{ waterfall_running.value|brl }}</strong></td><td>{{ step.status }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  </details>
+</section>
+
+<section class="section-block category-analysis-block">
+  <div class="section-heading"><div><p class="eyebrow">{{ current.month|month_label }} · gastos por categoria</p><h2>Onde o dinheiro está indo</h2></div></div>
+  {% if category_rows %}
+    {{ category_svg(category_chart) }}
+    <details class="details-panel"><summary>Ver todas as categorias e variação real</summary>
+      <div class="table-scroll"><table><thead><tr><th>Categoria</th><th>Planejado/lançado</th><th>Confirmado no FinFam</th><th>Confirmado no mês anterior</th><th>Variação confirmada</th></tr></thead><tbody>
+      {% for item in category_rows %}<tr><th scope="row">{{ item.category }}</th><td>{{ item.planned|brl }}</td><td>{{ item.confirmed|brl }}</td><td>{{ item.previous|brl }}</td><td><strong class="category-variance {{ 'negative' if item.change > 0 else 'positive' if item.change < 0 else '' }}">{{ item.change|brl }}{% if item.change_percent is not none %}<small class="block muted">{{ '%+.1f'|format(item.change_percent) }}%</small>{% else %}<small class="block muted">Sem baixa anterior</small>{% endif %}</strong></td></tr>{% endfor %}
+      </tbody></table></div>
+    </details>
+  {% else %}<div class="open-finance-empty">Ainda não há despesas categorizadas nesta competência.</div>{% endif %}
+</section>
+
+<section class="section-block">
+  <div class="section-heading chart-section-heading v5-chart-heading"><div><p class="eyebrow">Próximas competências</p><h2>{{ 'Fluxo bancário individual e faturas' if person != 'Família' else 'Saldo bancário e faturas' }}</h2></div><div class="chart-actions"><a class="text-link" href="{{ chart_toggle_url }}">{{ 'Ver próximos 12 meses' if chart_horizon == 'all' else 'Ver período completo' }} →</a></div></div>
+  <div class="dashboard-chart-grid">{% if person != 'Família' %}{{ chart_svg(member_bank_chart) }}{% else %}{{ chart_svg(monthly_chart) }}{% endif %}{{ chart_svg(invoice_chart) }}</div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Atual e futuro</p><h2>Caixinhas acumuladas</h2></div></div>
+  <div class="metric-row cashbox-metrics">
+    <article class="metric-card metric-positive"><span class="eyebrow">Acumulado confirmado no app</span><strong>{{ cashboxes.confirmed|brl }}</strong><small>Baixas de caixinha desde {{ cashboxes.base_month|month_label }} até {{ cashboxes.current_month|month_label }}; saldo anterior não cadastrado não está incluído.</small></article>
+    <article class="metric-card metric-focus" data-cashbox-horizon-value><span class="eyebrow">Estimativa em {{ cashboxes.visible_end.month|month_label if cashboxes.visible_end else 'fim da projeção' }}</span><strong>{{ cashboxes.visible_end.projected|brl if cashboxes.visible_end else cashboxes.confirmed|brl }}</strong></article>
+  </div>
+  {{ chart_svg(cashbox_chart) }}
+  <details class="details-panel"><summary>Ver valores estimados por competência</summary>
+    <div class="table-scroll"><table><thead><tr><th>Mês</th><th>Confirmado até agora</th><th>Saldo estimado no fim do mês</th><th>Situação</th></tr></thead><tbody>{% for row in cashboxes.rows %}<tr><th scope="row">{{ row.month|month_label }}</th><td>{{ row.confirmed|brl if row.confirmed is not none else '—' }}</td><td><strong>{{ row.projected|brl }}</strong></td><td>{{ row.status }}</td></tr>{% endfor %}</tbody></table></div>
+  </details>
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Próximas competências</p><h2>{{ 'Orçamento atribuído por competência' if person != 'Família' else 'Resultado e saldo por mês' }}</h2></div></div>
+  {% if person != 'Família' %}<p class="muted">Os valores desta tabela são o <strong>orçamento atribuído</strong> à pessoa; o saldo bancário individual fica na tabela separada abaixo.</p>{% endif %}
+  <details class="details-panel"><summary>Ver tabela completa por competência</summary>
+    {% if person != 'Família' %}
+    <div class="table-scroll"><table><caption>Orçamento atribuído — não é saldo bancário</caption><thead><tr><th>Mês</th><th>Orçamento atribuído · com impacto anterior</th><th>Orçamento atribuído · sem impacto anterior</th><th>Orçamento atribuído · variação</th></tr></thead><tbody>
+    {% for row in future %}<tr><th scope="row">{{ row.month|month_label }}{% if row.closed %}<small class="table-status">Fechado</small>{% else %}<small class="table-status">Previsto</small>{% endif %}</th><td class="{{ 'negative' if row.monthly_balance_with_prior_impact < 0 else 'positive' }}">{{ row.monthly_balance_with_prior_impact|brl }}</td><td class="{{ 'negative' if row.monthly_balance_without_prior_impact < 0 else 'positive' }}">{{ row.monthly_balance_without_prior_impact|brl }}</td><td>{{ row.net_change|brl }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}
+    <div class="table-scroll"><table><thead><tr><th>Mês</th><th>Saldo do mês com impacto anterior</th><th>Saldo do mês sem impacto anterior</th><th>Variação do caixa</th><th>Saldo bancário projetado</th><th>Folga do piso</th></tr></thead><tbody>
+    {% for row in future %}<tr><th scope="row">{{ row.month|month_label }}{% if row.closed %}<small class="table-status">Fechado</small>{% else %}<small class="table-status">Previsto</small>{% endif %}</th><td class="{{ 'negative' if row.monthly_balance_with_prior_impact < 0 else 'positive' }}">{{ row.monthly_balance_with_prior_impact|brl }}</td><td class="{{ 'negative' if row.monthly_balance_without_prior_impact < 0 else 'positive' }}">{{ row.monthly_balance_without_prior_impact|brl }}</td><td>{{ row.net_change|brl }}</td><td><strong>{{ row.projected_ending_balance|brl }}</strong></td><td class="{{ 'negative' if row.gap_to_minimum < 0 else 'positive' }}">{{ row.gap_to_minimum|brl }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% endif %}
+  </details>
+</section>
+{% if person != 'Família' %}
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Baixas e previsão por titular</p><h2>Saldo bancário individual por competência</h2></div></div>
+  <div class="table-scroll"><table><caption>Contas de {{ person }}; previsto inclui pendências sem presumir data de baixa</caption><thead><tr><th>Mês</th><th>Saldo confirmado</th><th>Saldo previsto</th><th>Pendências</th><th>Situação</th></tr></thead><tbody>
+  {% for row in member_bank_rows|default([]) %}<tr><th scope="row">{{ row.month|month_label }}{% if row.closed %}<small class="table-status">Fechado</small>{% else %}<small class="table-status">Previsto</small>{% endif %}</th><td>{{ row.confirmed_balance|brl if row.confirmed_balance is not none else '—' }}</td><td><strong>{{ row.projected_balance|brl }}</strong></td><td>{{ row.pending_count if row.pending_count is not none else '—' }}{% if row.pending_amount is not none %} · {{ row.pending_amount|brl }}{% endif %}</td><td>{{ 'Confirmado e previsto' if row.is_observed else 'Previsto' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Crédito</p><h2>Limites dos cartões</h2></div></div>
+  <details class="details-panel"><summary>Ver limites estimados por cartão</summary>
+    <div class="card-list">{% for card in cards_status %}
+      {% set utilization_percent = ((card.utilization or 0) * 100)|round|int %}
+      {% if utilization_percent < 0 %}{% set utilization_percent = 0 %}{% elif utilization_percent > 100 %}{% set utilization_percent = 100 %}{% endif %}
+      <a class="card-limit-link" href="{{ scoped('/cards/calendar') }}&amp;card={{ card.card|urlencode }}" aria-label="Abrir faturas detalhadas de {{ card.card }}"><article class="card-limit"><div><strong>{{ card.card }}</strong><small>Comprometido {{ card.total_committed|brl }} de {{ card.limit|brl }}</small></div><div class="limit-value"><strong>{{ card.available|brl }}</strong><small>livre estimado</small></div><div class="card-limit-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ utilization_percent }}" aria-label="Limite comprometido de {{ card.card }}"><svg viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="card-limit-progress-track" x="0" y="0" width="100" height="8" rx="4"></rect><rect class="card-limit-progress-fill" x="0" y="0" width="{{ utilization_percent }}" height="8" rx="4"></rect></svg></div></article></a>
+    {% endfor %}</div>
+  </details>
+</section>
+<section class="quick-links"><a class="button button-primary" href="/transactions/new">＋ Registrar lançamento</a><a class="button button-secondary" href="/plan?month={{ month }}&person={{ person }}">Simular uma compra</a></section>
+{% endblock %}

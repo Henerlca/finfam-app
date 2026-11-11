@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>Conectar o leitor Android</h2>
+  <p>Digite este código no companion Android instalado no seu celular:</p>
+  <p class="metric-number"><strong>{{ pairing_code }}</strong></p>
+  <p>Válido por dez minutos e para um único celular. Não compartilhe fora da família.</p>
+  <p class="muted">Depois do pareamento, escolha os apps bancários no leitor e autorize o acesso às notificações nas configurações do Android. Sem essa permissão, nada é capturado.</p>
+  <a class="button button-secondary" href="{{ scoped('/notificacoes') }}">Voltar à caixa de revisão</a>
+</section>
+{% endblock %}

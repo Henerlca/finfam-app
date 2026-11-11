@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Símbolo de fluxo financeiro familiar">
+  <rect width="512" height="512" rx="116" fill="#173f68"/>
+  <path d="M118 300c28-70 77-111 138-111 51 0 89 27 138 91" fill="none" stroke="#d7e8f7" stroke-linecap="round" stroke-width="38"/>
+  <path d="M118 212c33 72 78 111 138 111 54 0 96-29 138-92" fill="none" stroke="#f5f8fc" stroke-linecap="round" stroke-width="38"/>
+  <circle cx="256" cy="256" r="23" fill="#e4a761"/>
+</svg>

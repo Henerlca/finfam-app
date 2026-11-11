@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_chart.html" import chart_svg %}
+{% macro simulation_form() %}
+<form method="get" action="/plan#simulation-results" class="panel scenario-form">
+  <div class="section-heading"><div><p class="eyebrow">Decida antes de comprar</p><h2>Compare o impacto no orçamento familiar</h2></div><span class="status-pill status-neutral">Simulação temporária</span></div>
+  <div class="form-grid compact-grid">
+    <label>Valor total da compra (R$)<input type="number" name="amount" min="0" step="0.01" value="{{ amount if amount else '' }}" placeholder="3000.00"></label>
+    <label>Mês do pagamento ou primeira fatura<input type="month" name="scenario_month" value="{{ scenario_month }}"></label>
+    <label>Número de parcelas<input type="number" name="parts" min="1" max="120" value="{{ parts }}"></label>
+    <label>Cartão (opcional)<select name="card"><option value="">Sem cartão</option>{% for item in cards %}<option value="{{ item.name }}" {% if item.name == selected_card %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></label>
+    <input type="hidden" name="month" value="{{ month }}"><input type="hidden" name="person" value="{{ person }}"><input type="hidden" name="horizon" value="{{ chart_horizon }}">
+  </div>
+  <div class="form-actions"><button class="button button-primary" type="submit">Comparar alternativas</button><a class="button button-quiet" href="{{ scoped('/plan') }}">Limpar</a></div>
+  <p class="simulation-assumption">Parcelas iguais, sem juros ou tarifas. A simulação não cria lançamentos.</p>
+</form>
+{% endmacro %}
+{% block content %}
+{% if amount > 0 %}
+<section id="simulation-results" data-simulation-results class="simulation-results" tabindex="-1" aria-labelledby="simulation-results-title">
+  <div class="section-heading simulation-result-heading"><div><p class="eyebrow">Resultado da simulação</p><h2 id="simulation-results-title">Cabe ou é arriscado?</h2></div><span class="status-pill status-neutral">Nada foi gravado</span></div>
+  <section class="metric-row simulation-end-balances simulation-end-balances-v5" aria-label="Saldos finais comparados">
+    <article class="metric-card"><span class="eyebrow">Sem compra · saldo final</span><strong>{{ end_base.projected_ending_balance|brl if end_base else '—' }}</strong><small>{% if end_base %}{{ end_base.month|month_label }}{% else %}Sem projeção{% endif %}</small></article>
+    <article class="metric-card {% if cash_below %}metric-risk{% else %}metric-positive{% endif %}"><span class="eyebrow">À vista · saldo final</span><strong>{{ end_cash.projected_ending_balance|brl if end_cash else '—' }}</strong><small>{% if cash_below %}Abaixo do piso em {{ cash_below.month|month_label }}{% else %}Acima do piso no horizonte{% endif %}</small></article>
+    <article class="metric-card {% if parts_below %}metric-risk{% else %}metric-focus{% endif %}"><span class="eyebrow">Parcelado · saldo final</span><strong>{{ end_parts.projected_ending_balance|brl if end_parts else '—' }}</strong><small>{% if parts_below %}Abaixo do piso em {{ parts_below.month|month_label }}{% else %}Acima do piso no horizonte{% endif %}</small></article>
+  </section>
+  <div class="simulation-alerts">
+    {% if cash_below %}<div class="alert alert-danger"><strong>À vista: cruza o piso em {{ cash_below.month|month_label }}.</strong></div>{% endif %}
+    {% if parts_below %}<div class="alert alert-warning"><strong>Parcelado: cruza o piso em {{ parts_below.month|month_label }}.</strong></div>{% endif %}
+    {% if not cash_below and not parts_below %}<div class="alert alert-good"><strong>As duas alternativas permanecem acima do piso no horizonte projetado.</strong></div>{% endif %}
+    {% if card_status and card_available_after is not none %}<div class="alert {% if card_available_after < 0 %}alert-danger{% else %}alert-good{% endif %}"><strong>Limite estimado de {{ selected_card }} · {{ scenario_month|month_label }}:</strong> {{ card_status.available|brl }} disponível; após a compra no crédito, {{ card_available_after|brl }}. {% if card_available_after < 0 %}O total ultrapassa o limite disponível.{% endif %}</div>{% endif %}
+  </div>
+  <section class="section-block simulation-chart-block">
+    <div class="section-heading chart-section-heading"><div><p class="eyebrow">A partir de {{ month|month_label }}</p><h2>Saldo bancário projetado</h2></div></div>
+    {{ chart_svg(scenario_chart) }}
+    {% if card_status %}<details class="details-panel"><summary>Limite do cartão por competência</summary><div class="table-scroll"><table><thead><tr><th>Mês</th><th>Limite livre · sem compra</th><th>Limite livre · parcelado</th></tr></thead><tbody>{% for row in compare %}<tr><th>{{ row.month|month_label }}</th><td>{{ row.card_available_base|brl }}</td><td class="{{ 'negative' if row.card_available_parts < 0 else '' }}">{{ row.card_available_parts|brl }}</td></tr>{% endfor %}</tbody></table></div></details>{% endif %}
+  </section>
+  <section class="section-block"><div class="section-heading"><div><p class="eyebrow">Detalhes opcionais</p><h2>Resultado mensal por alternativa</h2></div></div>
+    <details class="details-panel simulation-table-details"><summary>Ver tabela completa mês a mês</summary>
+      <div class="table-scroll"><table class="scenario-table"><thead><tr><th rowspan="2">Mês</th><th colspan="3">Sem compra</th><th colspan="3">À vista · {{ amount|brl }}</th><th colspan="3">Parcelado · {{ parts }} × {{ (amount / parts)|brl }}</th><th rowspan="2">Piso</th></tr><tr><th>Saldo do mês com impacto anterior</th><th>Saldo do mês sem impacto anterior</th><th>Saldo final</th><th>Saldo do mês com impacto anterior</th><th>Saldo do mês sem impacto anterior</th><th>Saldo final</th><th>Saldo do mês com impacto anterior</th><th>Saldo do mês sem impacto anterior</th><th>Saldo final</th></tr></thead><tbody>
+      {% for row in compare %}<tr><th scope="row">{{ row.month|month_label }}<small class="table-status">{{ 'Fechado' if row.closed else 'Previsto' }}</small></th><td class="{{ 'negative' if row.base_ae < 0 else 'positive' }}">{{ row.base_ae|brl }}</td><td class="{{ 'negative' if row.base_af < 0 else 'positive' }}">{{ row.base_af|brl }}</td><td>{{ row.base_ag|brl }}</td><td class="{{ 'negative' if row.cash_ae < 0 else 'positive' }}">{{ row.cash_ae|brl }}</td><td class="{{ 'negative' if row.cash_af < 0 else 'positive' }}">{{ row.cash_af|brl }}</td><td><strong>{{ row.cash_ag|brl }}</strong></td><td class="{{ 'negative' if row.parts_ae < 0 else 'positive' }}">{{ row.parts_ae|brl }}</td><td class="{{ 'negative' if row.parts_af < 0 else 'positive' }}">{{ row.parts_af|brl }}</td><td><strong>{{ row.parts_ag|brl }}</strong></td><td>{{ row.floor|brl }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </details>
+  </section>
+</section>
+<details class="details-panel simulation-form-details"><summary>Ajustar dados e comparar novamente</summary>{{ simulation_form() }}</details>
+{% else %}
+{{ simulation_form() }}
+<div class="empty-state panel"><h2>Simule antes de decidir</h2><p>Informe o valor e compare sem compra, à vista e em parcelas iguais.</p></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <p class="eyebrow">Confirmar exclusão</p>
+  <h2>{{ row.description }}</h2>
+  <p>{{ row.type }} · {{ row.amount|brl }} · {{ row.start_month|month_label }}</p>
+  {% if delete_error %}<div class="alert alert-warning" role="alert">{{ delete_error }}</div>{% endif %}
+  {% if blocked_by_closed %}
+    <div class="alert alert-warning" role="alert">Há competências fechadas no histórico. A exclusão integral está bloqueada; o corte prospectivo preserva os meses anteriores. Para alterar ou excluir uma competência fechada, Reabra o mês.</div>
+  {% endif %}
+  {% if repeated %}
+    <div class="alert alert-warning"><strong>Esta linha tem parcelas ou repetição mensal.</strong><span>Você pode interromper somente a competência selecionada em diante. Os meses anteriores, inclusive os fechados, permanecem intactos.</span></div>
+  {% else %}
+    <p>O lançamento e suas baixas individuais serão removidos. Esta opção só fica disponível se a competência não estiver fechada.</p>
+  {% endif %}
+  <p class="muted">As alterações ficam registradas no histórico. Se permitido, você terá 15 minutos para desfazer.</p>
+  <form method="post" action="/transactions/{{ row.id }}/delete">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="_entry_version" value="{{ entry_version }}">
+    <input type="hidden" name="confirmation" value="delete">
+    <input type="hidden" name="_context_month" value="{{ nav_context.month }}"><input type="hidden" name="_context_person" value="{{ nav_context.person }}"><input type="hidden" name="_context_horizon" value="{{ nav_context.horizon }}">
+    <input type="hidden" name="return_page" value="{{ return_page|default('', true) }}"><input type="hidden" name="return_card" value="{{ return_card|default('', true) }}"><input type="hidden" name="return_month" value="{{ return_month|default('', true) }}">
+    {% if repeated and future_delete_allowed %}
+    <label>Excluir a partir desta competência
+      <input type="month" name="cutoff_month" value="{{ cutoff_month }}" min="{{ row.start_month[:7] }}" {% if row.end_month %}max="{{ row.end_month[:7] }}"{% endif %} required>
+      <small>Escolha uma competência aberta. O histórico anterior será preservado.</small>
+    </label>
+    {% endif %}
+    <div class="form-actions">
+      {% if repeated and future_delete_allowed %}<button class="button button-primary" type="submit" name="deletion_scope" value="future">Excluir daqui em diante</button>{% endif %}
+      {% if full_delete_allowed %}<button class="button {% if repeated %}button-secondary{% else %}button-primary{% endif %}" type="submit" name="deletion_scope" value="all">Excluir {% if repeated %}a linha inteira (todas as competências){% else %}lançamento{% endif %}</button>{% elif not repeated %}<button class="button button-primary" type="submit" name="deletion_scope" value="all" disabled>Excluir lançamento</button>{% endif %}
+      {% if repeated and not future_delete_allowed and not full_delete_allowed %}<span class="muted">Não há uma competência aberta disponível para este lançamento.</span><button class="button button-primary" type="submit" name="deletion_scope" value="future" disabled>Excluir daqui em diante</button>{% endif %}
+      <a class="button button-quiet" href="{{ cancel_url|default('/transactions', true) }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,183 @@
+<!doctype html>
+{% set context = nav_context|default({}, true) %}
+{% set context_month = context.month|default(month|default('', true), true) %}
+{% set context_person = context.person|default(person|default('Família', true), true) %}
+{% set context_horizon = context.horizon|default(horizon|default('12', true), true) %}
+{% set context_people = nav_people|default(people|default([], true), true) %}
+{% set clean_nav_query = nav_query|default('', true)|replace('?', '', 1) %}
+{% macro scoped(path) -%}
+  {{- path -}}{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}
+{%- endmacro %}
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f68">
+  <meta name="csrf-token" content="{{ csrf }}">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finanças H&amp;J">
+  <title>{{ title }} · Hener &amp; Ju</title>
+  <link rel="manifest" href="{{ asset_url('/static/manifest.webmanifest') }}">
+  <link rel="icon" href="{{ asset_url('/static/icons/app-icon.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ asset_url('/static/icons/apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/app.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/palette-v5.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/shell-v5.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/product-v5.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/daily-v5.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/chart-tooltips.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('/static/css/finance-visuals.css') }}">
+  <script defer src="{{ asset_url('/static/js/app.js') }}"></script>
+  <script defer src="{{ asset_url('/static/js/context-v5.js') }}"></script>
+  <script defer src="{{ asset_url('/static/js/chart-tooltips.js') }}"></script>
+</head>
+<body>
+  <header class="topbar topbar-v5">
+    <div class="topbar-tools">
+      <div class="topbar-main">
+        <a class="brand" href="{{ scoped('/dashboard') }}" aria-label="Início do Controle Financeiro Hener e Ju">
+          <img src="{{ asset_url('/static/icons/app-icon.svg') }}" width="38" height="38" alt="">
+          <span><strong>Hener &amp; Ju</strong><small>finanças da família</small></span>
+        </a>
+        <div class="top-actions">
+          <span class="private-badge"><span aria-hidden="true">●</span> Privado</span>
+          <button class="button button-quiet install-button" type="button" data-install-app hidden>Instalar app</button>
+          <form action="/logout" method="post" class="inline-form">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <button class="button button-quiet" type="submit" aria-label="Sair do acesso familiar">Sair</button>
+          </form>
+        </div>
+      </div>
+      <div class="desktop-nav-slot" data-desktop-nav-slot></div>
+      <div class="context-strip">
+        <details class="global-context" data-global-context data-month="{{ context_month }}" data-person="{{ context_person }}" data-horizon="{{ context_horizon }}">
+          <summary aria-label="Abrir contexto global" aria-expanded="false">
+            <span class="global-context-mark" aria-hidden="true">◉</span>
+            <span class="global-context-summary">
+              <strong>Contexto</strong>
+              <span class="global-context-values" aria-label="Mês, pessoa e horizonte selecionados">
+                <span>{{ context_month|month_label if context_month else 'mês atual' }}</span><span aria-hidden="true">·</span><span>{{ context_person }}</span><span aria-hidden="true">·</span><span>{{ 'Período completo' if context_horizon == 'all' else 'Próximos 12 meses' }}</span>
+              </span>
+            </span>
+            <span class="global-context-caret" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="global-context-popover">
+            <form class="global-context-form" data-context-v5 method="get" action="{{ request.url.path }}" aria-label="Contexto global da consulta">
+              <label>Mês
+                <input type="month" name="month" value="{{ context_month }}">
+              </label>
+              {% if context_people %}
+              <label>Membro
+                <select name="person">
+                  {% for nav_person in context_people %}<option value="{{ nav_person }}" {% if nav_person == context_person %}selected{% endif %}>{{ nav_person }}</option>{% endfor %}
+                </select>
+              </label>
+              {% else %}<input type="hidden" name="person" value="{{ context_person }}">{% endif %}
+              <label>Horizonte
+                <select name="horizon">
+                  <option value="12" {% if context_horizon != 'all' %}selected{% endif %}>Próximos 12 meses</option>
+                  <option value="all" {% if context_horizon == 'all' %}selected{% endif %}>Período completo</option>
+                </select>
+              </label>
+              {% for key, value in request.query_params.multi_items() %}{% if key not in ['month', 'person', 'member', 'horizon', 'page'] %}<input type="hidden" name="{{ key }}" value="{{ value }}" data-context-filter>{% endif %}{% endfor %}
+              <button class="button button-primary" type="submit" data-context-apply>Aplicar</button>
+            </form>
+          </div>
+        </details>
+        {% set show_family_sync = family_sync|default(false, true) %}
+        {% set sync_info = family_sync_info|default({}, true) %}
+        <div class="family-sync" data-family-sync {% if not show_family_sync %}hidden{% endif %} role="status" aria-live="polite">
+          <span data-sync-message data-revision="{{ sync_info.get('revision', '0') }}" data-updated-at="{{ sync_info.get('updated_at', '') }}">{{ sync_info.get('label', 'Consultando atualização…') }}</span>
+          <button class="button button-quiet family-sync-refresh" type="button" data-family-refresh hidden>Atualizar</button>
+          <a class="text-link" href="{{ scoped('/activity') }}">Alterações recentes</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="offline-banner" data-offline-banner role="status" aria-live="polite" hidden>
+    Sem conexão. Volte a ficar online para consultar ou alterar os dados financeiros da família.
+  </div>
+
+  <main class="page-shell">
+    {% set undo_token = undo_id|default('', true) or request.query_params.get('undo_id', '') %}
+    {% set saved_notice = saved|default('', true) or request.query_params.get('saved', '') %}
+    {% if undo_token or saved_notice == '1' %}
+    <div class="shell-notices" aria-live="polite">
+      {% if undo_token %}<div class="alert alert-warning shell-notice shell-notice-undo" data-undo-banner role="status"><span><strong>Alteração recente.</strong> Você pode desfazer esta ação.</span><form method="post" action="/activity/{{ undo_token }}/undo" class="inline-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="button button-secondary" type="submit">Desfazer</button></form></div>{% endif %}
+      {% if saved_notice == '1' %}<div class="alert alert-good shell-notice" data-saved-notice role="status"><strong>Alterações salvas.</strong><span>A família já pode consultar a atualização.</span></div>{% endif %}
+    </div>
+    {% endif %}
+    <div class="page-heading">
+      <div><p class="eyebrow">Controle financeiro familiar</p><h1>{{ title }}</h1></div>
+    </div>
+    {% block content %}{% endblock %}
+    <footer class="page-footer">Dados privados da família · Previsões não substituem a consulta ou baixa bancária.</footer>
+  </main>
+
+  <nav class="bottom-nav" data-primary-nav aria-label="Navegação principal">
+    <a href="{{ scoped('/dashboard') }}" {% if active_path == '/dashboard' %}aria-current="page"{% endif %}><span aria-hidden="true">⌂</span><small>Resumo</small></a>
+    <a href="{{ scoped('/today') }}" {% if active_path == '/today' %}aria-current="page"{% endif %}><span aria-hidden="true">◷</span><small>Dia a dia</small></a>
+    <a class="nav-action" href="{{ scoped('/transactions/new') }}" {% if active_path == '/transactions/new' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span><small>Lançar</small></a>
+    <a href="{{ scoped('/flow') }}" {% if active_path == '/flow' %}aria-current="page"{% endif %}><span aria-hidden="true">↗</span><small>Fluxo</small></a>
+    <a class="nav-assistant" href="{{ scoped('/assistente') }}" {% if active_path == '/assistente' %}aria-current="page"{% endif %} data-assistant-open role="button" aria-haspopup="dialog"><span aria-hidden="true">✦</span><small>Assistente</small></a>
+    <details class="more-menu">
+      <summary aria-label="Mais opções"><span aria-hidden="true">⋯</span><small>Mais</small></summary>
+      <div class="more-links">
+        <section class="more-menu-group" aria-labelledby="more-organize-heading">
+          <h2 class="more-links-heading" id="more-organize-heading">Organizar</h2>
+          <a href="{{ scoped('/transactions') }}" {% if active_path == '/transactions' or active_path.startswith('/transactions/') %}aria-current="page"{% endif %}>Movimentações</a>
+          <a href="{{ scoped('/cards/calendar') }}" {% if active_path == '/cards/calendar' %}aria-current="page"{% endif %}>Cartões</a>
+          <a href="{{ scoped('/pots') }}" {% if active_path == '/pots' %}aria-current="page"{% endif %}>Reservas</a>
+          <a href="{{ scoped('/open-finance') }}" {% if active_path == '/open-finance' %}aria-current="page"{% endif %}>Open Finance</a>
+          <a href="{{ scoped('/settings') }}" {% if active_path == '/settings' or active_path.startswith('/settings/') %}aria-current="page"{% endif %}>Contas</a>
+        </section>
+        <div class="more-links-divider" aria-hidden="true"></div>
+        <section class="more-menu-group" aria-labelledby="more-plan-heading">
+          <h2 class="more-links-heading" id="more-plan-heading">Planejar</h2>
+          <a href="{{ scoped('/plan') }}" {% if active_path == '/plan' %}aria-current="page"{% endif %}>Plano</a>
+          <a href="{{ scoped('/scenarios') }}" {% if active_path == '/scenarios' %}aria-current="page"{% endif %}>Cenários</a>
+          <a href="{{ scoped('/goals') }}" {% if active_path == '/goals' %}aria-current="page"{% endif %}>Metas</a>
+        </section>
+        <div class="more-links-divider" aria-hidden="true"></div>
+        <section class="more-menu-group" aria-labelledby="more-config-heading">
+          <h2 class="more-links-heading" id="more-config-heading">Configuração</h2>
+          <a href="{{ scoped('/assistente') }}" {% if active_path == '/assistente' %}aria-current="page"{% endif %}>IA</a>
+          <a href="{{ scoped('/notificacoes') }}" {% if active_path == '/notificacoes' %}aria-current="page"{% endif %}>Notificações</a>
+          <a href="{{ scoped('/activity') }}" {% if active_path == '/activity' %}aria-current="page"{% endif %}>Alterações recentes</a>
+          <a href="{{ scoped('/recovery') }}" {% if active_path == '/recovery' %}aria-current="page"{% endif %}>Backup e restauração</a>
+          <a href="/backup.json">Backup privado</a>
+          <details class="install-guide"><summary>Instalar no celular</summary><p><strong>Android:</strong> no Chrome, toque em “Instalar app” quando aparecer ou abra o menu ⋮ e escolha “Instalar app”/“Adicionar à tela inicial”.</p><p><strong>iPhone:</strong> abra este site no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”.</p><p>Depois, entre com a senha da família. A consulta e as alterações exigem conexão com a internet.</p></details>
+          <form action="/logout" method="post" class="more-logout-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="more-logout" type="submit">Sair</button></form>
+        </section>
+      </div>
+    </details>
+  </nav>
+  <dialog class="assistant-drawer" data-assistant-dialog aria-modal="true" aria-labelledby="assistant-drawer-title" aria-describedby="assistant-privacy-note">
+    <div class="assistant-drawer-surface">
+      <header class="assistant-drawer-header">
+        <div><p class="eyebrow">Ajuda para decidir</p><h2 id="assistant-drawer-title">Assistente financeiro</h2></div>
+        <button class="button button-quiet assistant-close" type="button" data-assistant-close aria-label="Fechar assistente">Fechar</button>
+      </header>
+      <div class="assistant-consent" data-assistant-consent-panel id="assistant-privacy-note">
+        <p><strong>Privacidade antes da primeira consulta.</strong> Descrições, categorias, valores, datas, status e planejamento podem ser enviados à IA. Pessoas, contas e cartões são enviados como pseudônimos. Senhas e notificações brutas nunca são enviadas.</p>
+        <label class="check-label ai-consent"><input type="checkbox" data-assistant-consent> Autorizo o envio desses dados desta consulta para a IA.</label>
+      </div>
+      <div class="assistant-messages" data-assistant-messages aria-live="polite" aria-relevant="additions"></div>
+      <form class="assistant-chat-form" data-assistant-form>
+        <label for="assistant-question">Pergunta
+          <textarea id="assistant-question" data-assistant-question rows="3" maxlength="2000" placeholder="Ex.: o que merece atenção neste mês?"></textarea>
+        </label>
+        <div class="form-actions assistant-chat-actions">
+          <button class="button button-primary" type="submit" data-assistant-submit>Enviar pergunta</button>
+          <button class="button button-quiet" type="button" data-assistant-clear>Limpar conversa</button>
+          <a class="button button-secondary" href="{{ scoped('/assistente') }}">Preferências</a>
+        </div>
+        <p class="assistant-status" data-assistant-status role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </dialog>
+</body>
+</html>

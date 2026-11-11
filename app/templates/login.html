@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#163b40"><meta name="robots" content="noindex,nofollow,noarchive">
+  <title>{{ title }} · Hener & Ju</title><link rel="manifest" href="{{ asset_url('/static/manifest.webmanifest') }}"><link rel="icon" href="{{ asset_url('/static/icons/app-icon.svg') }}" type="image/svg+xml"><link rel="stylesheet" href="{{ asset_url('/static/css/app.css') }}">
+</head>
+<body class="login-body">
+  <main class="login-wrap">
+    <section class="login-card" aria-labelledby="login-title">
+      <img src="{{ asset_url('/static/icons/app-icon.svg') }}" width="56" height="56" alt="" class="login-mark">
+      <p class="eyebrow">Espaço privado da família</p>
+      <h1 id="login-title">Hener & Ju</h1>
+      <p class="muted">Acompanhem o dinheiro da família com clareza, do dia a dia ao planejamento dos próximos meses.</p>
+      {% if error %}<div class="alert alert-warning" role="alert">{{ error }}</div>{% endif %}
+      {% if login_csrf %}
+      <form method="post" action="/login" class="stack-form">
+        <input type="hidden" name="_csrf" value="{{ login_csrf }}">
+        <label for="password">Senha da família</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+        <button class="button button-primary button-wide" type="submit">Entrar com segurança</button>
+      </form>
+      {% endif %}
+      <p class="login-note"><span aria-hidden="true">▣</span> Seus dados só aparecem depois da autenticação e não ficam salvos no modo offline.</p>
+    </section>
+  </main>
+</body>
+</html>

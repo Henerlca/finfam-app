@@ -1,0 +1,844 @@
+/* FinFam product v5 — hierarquia de resposta e revisão segura.
+   Este arquivo é aditivo: o template base deve carregá-lo depois de app.css. */
+
+:root {
+  --product-v5-primary: var(--petrol);
+  --product-v5-primary-strong: var(--petrol-2);
+  --product-v5-positive: var(--green);
+  --product-v5-positive-bg: var(--green-bg);
+  --product-v5-focus-ring: #78a9cf;
+  --product-v5-positive-line: #d3e3f1;
+  --product-v5-positive-wash: #f1f7fc;
+  --product-v5-note-line: #7ba0be;
+  --product-v5-note-bg: #eef5fa;
+  --product-v5-note-ink: #365874;
+  --product-v5-impact-line: #d3e4f2;
+  --product-v5-impact-bg: #f4f9fd;
+}
+
+.v5-dashboard-answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.v5-primary-answer {
+  min-height: 164px;
+  justify-content: center;
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.v5-primary-answer .metric-number {
+  font-size: clamp(31px, 5vw, 52px);
+}
+
+.v5-primary-answer.metric-bank {
+  box-shadow: inset 5px 0 0 var(--petrol-2), var(--shadow);
+}
+
+.v5-secondary-metrics {
+  margin: 0 0 22px;
+}
+
+.v5-secondary-metrics > summary {
+  font-size: 13px;
+}
+
+.v5-secondary-metrics .metric-row {
+  margin: 14px 0 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.v5-attention-block {
+  margin-top: 24px;
+}
+
+.v5-attention-heading {
+  align-items: center;
+}
+
+.v5-attention-heading h2 {
+  font-size: clamp(21px, 3vw, 27px);
+}
+
+.v5-attention-list {
+  gap: 10px;
+}
+
+.v5-attention-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.v5-attention-item > span {
+  display: block;
+}
+
+.v5-attention-action {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.v5-attention-action::after {
+  content: " →";
+}
+
+.v5-chart-heading {
+  align-items: center;
+}
+
+.simulation-results {
+  scroll-margin-top: calc(var(--finfam-header-height, 150px) + 20px);
+  margin-bottom: 20px;
+}
+
+.simulation-results:focus {
+  outline: 3px solid var(--product-v5-focus-ring);
+  outline-offset: 5px;
+  border-radius: 18px;
+}
+
+.simulation-result-heading {
+  align-items: center;
+}
+
+.simulation-result-heading h2 {
+  font-size: clamp(21px, 3vw, 27px);
+}
+
+.simulation-end-balances {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.simulation-end-balances .metric-card {
+  min-height: 142px;
+}
+
+.simulation-end-balances .metric-card > strong {
+  font-size: clamp(24px, 3vw, 35px);
+}
+
+.simulation-alerts {
+  display: grid;
+  gap: 9px;
+  margin: 0 0 15px;
+}
+
+.simulation-chart-block {
+  margin-top: 18px;
+}
+
+.simulation-table-details {
+  margin-top: 14px;
+}
+
+.simulation-form-details {
+  margin-top: 18px;
+}
+
+.simulation-form-details > summary {
+  font-weight: 750;
+  color: var(--petrol);
+}
+
+.goals-intro,
+.goals-empty {
+  width: 100%;
+}
+
+.goals-empty {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr);
+  gap: clamp(18px, 4vw, 42px);
+  align-items: center;
+  padding: clamp(24px, 5vw, 52px);
+}
+
+.goals-empty h2 {
+  color: var(--petrol);
+  font-size: clamp(25px, 4vw, 36px);
+  letter-spacing: -.035em;
+  margin-bottom: 8px;
+}
+
+.goals-empty > div:first-child > p:not(.eyebrow) {
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.goal-example {
+  padding: 18px;
+  border: 1px solid var(--product-v5-positive-line);
+  border-radius: 16px;
+  background: linear-gradient(140deg, var(--product-v5-positive-wash), #fff 78%);
+}
+
+.goal-example .eyebrow {
+  color: var(--green);
+}
+
+.goal-example strong {
+  color: var(--petrol);
+}
+
+.goal-example p:last-child {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.goal-create-details {
+  margin-top: 18px;
+}
+
+.goal-create-details > summary {
+  list-style: none;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.goal-create-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.goal-create-details[open] > summary {
+  margin-bottom: 15px;
+}
+
+.goal-form-note,
+.goal-saving-note {
+  margin: 0 0 13px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--product-v5-note-line);
+  border-radius: 0 10px 10px 0;
+  background: var(--product-v5-note-bg);
+  color: var(--product-v5-note-ink);
+  font-size: 12px;
+}
+
+.goal-grid-v5 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.goal-card-v5 {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.goal-card-v5 h2 {
+  margin: 0;
+  color: var(--petrol);
+  font-size: clamp(20px, 3vw, 25px);
+}
+
+.goal-card-v5 .goal-current-balance {
+  display: block;
+  margin-top: 2px;
+  color: var(--green);
+  font-size: clamp(25px, 4vw, 36px);
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-card-v5 .goal-as-of,
+.goal-card-v5 .goal-target-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.goal-card-v5 .goal-target-line strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-progress-track {
+  width: 100%;
+  height: 11px;
+  margin: 2px 0 0;
+  accent-color: var(--petrol);
+}
+
+.goal-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.goal-progress-meta strong {
+  color: var(--petrol);
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-stats-v5 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1px;
+}
+
+.goal-stats-v5 > div {
+  min-height: 70px;
+}
+
+.goal-stats-v5 strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-next-milestone {
+  color: var(--petrol);
+}
+
+.goal-card-v5 > details {
+  margin-top: 3px;
+}
+
+.goal-card-v5 > details > summary {
+  color: var(--petrol);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.goal-card-v5 .goal-delete-form {
+  margin-top: 2px;
+}
+
+.assistant-proposal-flow {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 2px;
+}
+
+.assistant-proposal-step {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--product-v5-note-bg);
+  color: var(--ink) !important;
+  font-size: 12px !important;
+}
+
+.assistant-proposal-step strong {
+  display: inline;
+  margin-right: 4px;
+  color: var(--petrol);
+  font-size: inherit;
+}
+
+.assistant-proposal-impact {
+  display: grid;
+  gap: 5px;
+  margin-top: 2px;
+  padding: 10px;
+  border: 1px solid var(--product-v5-impact-line);
+  border-radius: 11px;
+  background: var(--product-v5-impact-bg);
+}
+
+.assistant-proposal-impact > strong {
+  margin: 0;
+  color: var(--green);
+  font-size: 12px;
+}
+
+.assistant-proposal-impact-row {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.assistant-proposal-impact-row strong {
+  display: inline;
+  margin: 0;
+  color: var(--ink);
+  font-size: inherit;
+}
+
+.assistant-proposal-missing-impact {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .v5-dashboard-answer,
+  .goals-empty {
+    grid-template-columns: 1fr;
+  }
+
+  .v5-primary-answer {
+    min-height: 136px;
+  }
+
+  .v5-secondary-metrics .metric-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .v5-attention-item {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .v5-attention-action {
+    justify-self: start;
+  }
+
+  .simulation-end-balances,
+  .goal-grid-v5 {
+    grid-template-columns: 1fr;
+  }
+
+  .simulation-result-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .goals-empty {
+    padding: 22px 18px;
+  }
+
+  .goal-stats-v5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .v5-secondary-metrics .metric-row,
+  .goal-stats-v5 {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-stats-v5 > div {
+    min-height: auto;
+  }
+}
+
+.card-calendar-card .table-detail-row .card-purchase-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card-calendar-card .table-detail-row .card-purchase{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:5px;min-width:0;padding:10px;border:1px solid #d8e2e9;border-radius:10px;background:#f8fafb;overflow-wrap:anywhere}
+.card-calendar-card .table-detail-row .card-purchase>strong{justify-self:start;color:var(--petrol);font-variant-numeric:tabular-nums}
+.card-calendar-card .table-detail-row .card-purchase>small{overflow-wrap:anywhere}
+@media(max-width:600px){.card-calendar-card .table-detail-row .card-purchase-list{grid-template-columns:minmax(0,1fr)}.card-calendar-card .table-detail-row .card-purchase{width:100%}}
+
+@media(max-width:600px){.card-calendar-card .table-detail-row .card-purchase-list{width:min(100%,calc(100vw - 48px));max-width:calc(100vw - 48px);min-width:0;box-sizing:border-box}.card-calendar-card .table-detail-row .card-purchase{width:100%;max-width:100%;min-width:0;box-sizing:border-box}}
+
+@media(max-width:760px){.card-calendar-card .table-detail-row .card-purchase-list{grid-template-columns:minmax(0,1fr);width:min(100%,calc(100vw - 48px));max-width:calc(100vw - 48px);min-width:0;box-sizing:border-box}.card-calendar-card .table-detail-row .card-purchase{width:100%;max-width:100%;min-width:0;box-sizing:border-box}}
+
+
+/* Cartões: links de atalho, barras compatíveis com Chromium/Android e resumo mobile. */
+.card-limit-link {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 14px;
+}
+.card-limit-link .card-limit {
+  height: 100%;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.card-limit-link:hover .card-limit,
+.card-limit-link:focus-visible .card-limit {
+  border-color: #8db0cf;
+  box-shadow: 0 0 0 2px rgba(43, 103, 151, .12);
+}
+.card-limit-link:focus-visible {
+  outline: 2px solid #2b6797;
+  outline-offset: 2px;
+}
+.card-limit .progress progress {
+  display: block;
+  width: 100%;
+  height: 9px;
+  min-width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e6edf5;
+  accent-color: #2b6797;
+}
+.card-limit .progress progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: #e6edf5;
+}
+.card-limit .progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #2b6797;
+}
+.card-limit .progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: #2b6797;
+}
+
+.card-calendar-mobile-list {
+  display: none;
+}
+.card-calendar-mobile-row {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.card-calendar-mobile-row > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.card-calendar-mobile-row > header h3 {
+  margin: 0;
+  color: var(--petrol);
+  font-size: 16px;
+}
+.card-calendar-mobile-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.card-calendar-mobile-metrics > div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #e1eaf2;
+  border-radius: 10px;
+  background: #f6f9fc;
+}
+.card-calendar-mobile-metrics dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.card-calendar-mobile-metrics dd {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.card-calendar-mobile-row details > summary {
+  color: var(--petrol);
+  font-weight: 700;
+  cursor: pointer;
+}
+.card-calendar-mobile-row .card-purchase-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 9px;
+  box-sizing: border-box;
+}
+.card-calendar-mobile-row .card-purchase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  min-width: 0;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d8e2e9;
+  border-radius: 10px;
+  background: #f8fafb;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.card-calendar-mobile-row .card-purchase > strong {
+  justify-self: start;
+  color: var(--petrol);
+  font-variant-numeric: tabular-nums;
+}
+.card-purchase-edit-link {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  color: var(--petrol);
+  font-weight: 700;
+  text-decoration: none;
+}
+.card-purchase-edit-link > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.card-purchase-edit-link > small {
+  flex: 0 0 auto;
+  color: #2b6797;
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.card-purchase-edit-link:focus-visible {
+  outline: 2px solid #2b6797;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.card-filter-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #d6e4f0;
+  border-radius: 12px;
+  background: #f2f7fb;
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .card-calendar-card .card-calendar-desktop {
+    display: none;
+  }
+  .card-calendar-mobile-list {
+    display: grid;
+    gap: 10px;
+  }
+  .card-filter-note {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* Atalhos de compra e resumos de fatura em Fluxo */
+.card-purchase-actions{display:flex;justify-content:flex-end;gap:.75rem;grid-column:1/-1;padding-top:.1rem}
+.card-by-name-mobile{display:none}
+.reserve-pace-panel{overflow:hidden}
+.reserve-pace-metrics{margin-block:.75rem}
+.reserve-pace-note{max-width:72ch}
+@media(max-width:760px){
+  .card-by-name-desktop{display:none}
+  .card-by-name-mobile{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem;width:100%;min-width:0}
+  .card-by-name-mobile-item{display:grid;grid-template-columns:minmax(0,1fr);gap:.15rem;min-width:0;padding:.85rem 1rem;border:1px solid var(--line,#d5e0ea);border-radius:14px;background:var(--surface,#fff)}
+  .card-by-name-mobile-item span{font-size:.82rem;color:var(--muted,#637487)}
+  .card-by-name-mobile-item strong{min-width:0;overflow-wrap:anywhere}
+  .card-purchase-actions{justify-content:flex-start}
+  .reserve-pace-metrics{grid-template-columns:minmax(0,1fr)}
+}
+
+
+.activity-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:6px}
+.activity-card-actions a{display:inline-flex;align-items:center;min-height:32px}
+@media(max-width:600px){.activity-card-actions a{min-height:38px}}
+
+
+/* O controle nativo sem largura/cores explícitas aparentava estar vazio no Android. */
+.progress{width:100%;margin-top:8px}
+.progress progress{appearance:none;-webkit-appearance:none;display:block;width:100%;height:8px;border:0;border-radius:999px;background:#e7eef4;color:#246b9b;overflow:hidden}
+.progress progress::-webkit-progress-bar{background:#e7eef4;border-radius:999px}
+.progress progress::-webkit-progress-value{background:#246b9b;border-radius:999px}
+.progress progress::-moz-progress-bar{background:#246b9b;border-radius:999px}
+
+.card-limit-progress { width: 100%; margin-top: 8px; }
+.card-limit-progress progress { display: block; width: 100%; height: 9px; border: 0; border-radius: 999px; appearance: none; -webkit-appearance: none; background: #e4edf5; }
+.card-limit-progress progress::-webkit-progress-bar { border-radius: 999px; background: #e4edf5; }
+.card-limit-progress progress::-webkit-progress-value { border-radius: 999px; background: #256b9b; }
+.card-limit-progress progress::-moz-progress-bar { border-radius: 999px; background: #256b9b; }
+
+.card-limit-progress svg { display: block; width: 100%; height: 9px; overflow: hidden; }
+.card-limit-progress-track { fill: #e4edf5; }
+.card-limit-progress-fill { fill: #256b9b; }
+
+.duplicate-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.4rem}
+.duplicate-actions a{display:inline-flex;align-items:center;min-height:36px}
+
+
+/* Seletor único e detalhamento de faturas em azul, sem pilha de cartões. */
+.card-calendar-selector-panel {
+  border-color: #c8dced;
+  background: linear-gradient(150deg, #f7fbff, #fff 68%);
+}
+.card-calendar-selector-form {
+  display: grid;
+  gap: 7px;
+  max-width: 620px;
+}
+.card-calendar-selector-form > label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.card-calendar-selector-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+.card-calendar-selector-controls select {
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #aac9e1;
+  border-radius: 11px;
+  color: #173b5b;
+  background: #fff;
+  font: inherit;
+}
+.card-calendar-selector-controls select:focus-visible {
+  outline: 2px solid #2b6797;
+  outline-offset: 2px;
+}
+.card-open-invoice-details > summary,
+.open-finance-purchases > summary {
+  color: #245f91;
+  font-weight: 750;
+  cursor: pointer;
+}
+.open-finance-purchases {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #d5e4f0;
+  border-radius: 12px;
+  background: #f8fbfe;
+}
+.open-finance-purchase-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+.open-finance-purchase-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dce8f1;
+  border-radius: 10px;
+  background: #fff;
+}
+.open-finance-purchase-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.open-finance-purchase-row > div strong,
+.open-finance-purchase-row > div small {
+  overflow-wrap: anywhere;
+}
+.open-finance-purchase-row > div small {
+  color: var(--muted);
+}
+.open-finance-purchase-row > strong {
+  color: #173b5b;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.open-finance-purchase-status {
+  padding: 4px 8px;
+  border: 1px solid #c8dced;
+  border-radius: 999px;
+  color: #245f91;
+  background: #eff6fc;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.open-finance-purchase-status.pending {
+  color: #53677a;
+  border-color: #d6e0e8;
+  background: #f3f6f8;
+}
+@media (max-width: 600px) {
+  .card-calendar-selector-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .card-calendar-selector-controls .button {
+    width: 100%;
+  }
+  .open-finance-purchase-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .open-finance-purchase-row > div {
+    grid-column: 1 / -1;
+  }
+  .open-finance-purchase-row > strong {
+    justify-self: end;
+  }
+}
+
+.form-grid>.reserve-link-field{display:grid;gap:6px;align-content:start;min-width:0}
+.reserve-link-field>label{margin:0;color:var(--muted);font-size:12px;font-weight:700}
+.reserve-link-field>select{width:100%;min-width:0}
+.reserve-link-field>small{margin:0;color:var(--muted);font-size:11px;line-height:1.4}
+.reserve-link-field>[data-clear-stale-label]{margin:2px 0;font-weight:500}
+.duplicate-source-note p{margin:.35rem 0 0}
+
+.card-purchase-table-wrap{width:100%;max-width:900px;min-width:0;box-sizing:border-box;overflow:visible;margin-top:10px}
+.card-purchases-table{width:100%;max-width:900px;min-width:0;box-sizing:border-box;table-layout:fixed;border-collapse:collapse;color:var(--ink);font-size:12px}
+.card-purchases-table .purchase-date-col{width:14%}
+.card-purchases-table .purchase-description-col{width:34%}
+.card-purchases-table .purchase-installment-col{width:22%}
+.card-purchases-table .purchase-amount-col{width:30%}
+.card-purchases-table th,.card-purchases-table td{padding:8px 7px;border-bottom:1px solid #e2eaf1;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.card-purchases-table thead th{color:var(--muted);font-size:11px;font-weight:750;background:#f5f9fc}
+.card-purchases-table th a{color:#245f91;text-decoration:underline;text-underline-offset:2px}
+.card-purchases-table .purchase-date{width:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+.card-purchases-table .purchase-installment{width:auto;color:var(--muted);font-size:11px}
+.card-purchases-table .purchase-amount{width:auto;text-align:right;font-variant-numeric:tabular-nums}
+.card-purchases-table .amount-column{text-align:right}
+.card-purchases-table .purchase-amount strong,.card-purchases-table .purchase-description strong{font-weight:750}
+.card-purchases-table .purchase-description small,.card-purchases-table .purchase-amount small{display:block;margin-top:3px;color:var(--muted);font-size:10px;line-height:1.35}
+.card-purchases-table .card-purchase-edit-link{display:inline;color:#245f91;font-weight:750;overflow-wrap:anywhere}
+.card-purchases-table .purchase-actions-row td{padding:4px 7px 9px;border-bottom:1px solid #d7e2ec;background:#fbfdff}
+.card-purchases-table .card-purchase-actions{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:12px;padding:0;font-size:11px}
+.card-purchases-table .card-purchase-actions a{min-height:28px;color:#245f91;text-decoration:underline;text-underline-offset:2px}
+.card-purchases-table .card-purchase-actions a.negative{color:#a3344a}
+.card-purchases-table .empty-cell{text-align:center;color:var(--muted);padding:14px}
+@media(max-width:600px){
+  .card-purchase-table-wrap{width:100%;min-width:0;overflow:hidden}
+  .card-purchases-table{display:block;width:100%;font-size:11px;table-layout:auto}
+  .card-purchases-table thead{display:block;width:100%}
+  .card-purchases-table thead tr{display:grid;grid-template-columns:minmax(0,1fr) max-content;grid-template-areas:"date amount" "description installment";gap:3px 10px;padding-bottom:6px;border-bottom:1px solid #e2eaf1}
+  .card-purchases-table thead th{min-width:0;padding:4px;border:0;font-size:10px;white-space:nowrap}
+  .card-purchases-table thead th:nth-child(1){grid-area:date}
+  .card-purchases-table thead th:nth-child(2){grid-area:description}
+  .card-purchases-table thead th:nth-child(3){grid-area:installment;text-align:right}
+  .card-purchases-table thead th:nth-child(4){grid-area:amount;text-align:right}
+  .card-purchases-table tbody{display:block;width:100%}
+  .card-purchases-table tbody>tr:not(.purchase-actions-row){display:grid;grid-template-columns:minmax(0,1fr) max-content;grid-template-areas:"date amount" "description installment";gap:3px 10px;align-items:start;padding:6px 0}
+  .card-purchases-table tbody>tr:not(.purchase-actions-row)>td{width:auto;min-width:0;padding:3px 4px;border:0;overflow-wrap:anywhere}
+  .card-purchases-table .purchase-date{grid-area:date;width:auto;font-size:10px;white-space:nowrap}
+  .card-purchases-table .purchase-description{grid-area:description;min-width:0}
+  .card-purchases-table .purchase-description .card-purchase-edit-link{display:block;max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+  .card-purchases-table .purchase-description small{overflow-wrap:anywhere}
+  .card-purchases-table .purchase-installment{grid-area:installment;width:auto;max-width:100%;font-size:10px;text-align:right;white-space:nowrap}
+  .card-purchases-table .purchase-amount{grid-area:amount;width:auto;max-width:100%;font-size:10px;text-align:right;white-space:nowrap}
+  .card-purchases-table .purchase-amount small{white-space:normal}
+  .card-purchases-table tbody>tr.purchase-actions-row{display:block}
+  .card-purchases-table .purchase-actions-row td{display:block;width:100%;box-sizing:border-box;padding:5px 4px 10px}
+  .card-purchases-table .card-purchase-actions{gap:8px;font-size:10px}
+  .card-purchases-table .empty-cell{grid-column:1/-1}
+}
+
+@media(min-width:761px){
+  .card-calendar-card .card-calendar-desktop{width:100%;max-width:100%;min-width:0;margin-left:0;margin-right:0;overflow:visible}
+  .card-calendar-card .card-calendar-summary-table{display:table;width:100%;max-width:100%;min-width:0;table-layout:fixed;border-collapse:collapse}
+  .card-calendar-summary-table .summary-month-col{width:13%}
+  .card-calendar-summary-table .summary-invoice-col{width:15%}
+  .card-calendar-summary-table .summary-installments-col{width:15%}
+  .card-calendar-summary-table .summary-committed-col{width:19%}
+  .card-calendar-summary-table .summary-available-col{width:19%}
+  .card-calendar-summary-table .summary-status-col{width:19%}
+  .card-calendar-card .card-calendar-summary-table th,.card-calendar-card .card-calendar-summary-table td{min-width:0;padding:8px 6px;overflow-wrap:anywhere}
+  .card-calendar-card .card-calendar-summary-table .status-pill{white-space:normal}
+  .card-calendar-card .card-purchase-table-wrap{width:100%;max-width:900px;min-width:0;overflow:visible}
+  .card-calendar-card .card-purchases-table{width:100%;max-width:900px;min-width:0;table-layout:fixed}
+}

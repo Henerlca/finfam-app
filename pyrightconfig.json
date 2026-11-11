@@ -1,0 +1,22 @@
+{
+  "include": [
+    "app/open_finance_routes.py",
+    "app/services/open_finance_matching.py",
+    "app/services/open_finance.py",
+    "app/services/open_finance_reconciliation.py",
+    "tests/test_open_finance_fallback.py",
+    "tests/test_open_finance_reconciliation.py",
+    "tests/test_open_finance_matching.py",
+    "tests/test_open_finance_review_routes.py",
+    "app/services/card_installments.py"
+  ],
+  "exclude": ["**/__pycache__"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["."]
+    }
+  ]
+}

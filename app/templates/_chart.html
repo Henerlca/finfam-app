@@ -1,0 +1,28 @@
+{% macro chart_svg(chart) -%}
+{% if chart %}
+<figure class="chart-card" aria-labelledby="{{ chart.id }}-caption">
+  <figcaption id="{{ chart.id }}-caption">{{ chart.aria_label }}</figcaption>
+  <div class="chart-viewport" data-chart-interactive data-chart-points="{{ chart.tooltip_points|default([])|tojson|forceescape }}" tabindex="0" role="group" aria-label="{{ chart.aria_label }}. Passe o mouse ou toque para ver valores. No teclado, use as setas, Home e End; Escape fecha." aria-describedby="{{ chart.id }}-tooltip">
+    <svg class="finance-chart" viewBox="{{ chart.view_box }}" role="img" aria-label="{{ chart.aria_label }}" data-plot-left="{{ chart.plot.left }}" data-plot-right="{{ chart.plot.right }}" data-plot-top="{{ chart.plot.top }}" data-plot-bottom="{{ chart.plot.bottom }}" xmlns="http://www.w3.org/2000/svg">
+      <title>{{ chart.aria_label }}</title>
+      {% for tick in chart.ticks %}<line class="chart-gridline" x1="{{ chart.plot.left }}" x2="{{ chart.plot.right }}" y1="{{ tick.y }}" y2="{{ tick.y }}"/><text class="chart-y-label" x="{{ chart.plot.left - 9 }}" y="{{ tick.y + 4 }}" text-anchor="end">{{ tick.label }}</text>{% endfor %}
+      {% if chart.kind == 'stacked_bar' %}
+        <line class="chart-zero-line" x1="{{ chart.plot.left }}" x2="{{ chart.plot.right }}" y1="{{ chart.zero_y }}" y2="{{ chart.zero_y }}"/>
+        {% for bar in chart.bars %}{% for segment in bar.segments %}<rect class="chart-stacked-bar" data-chart-point-index="{{ segment.index }}" x="{{ segment.x }}" y="{{ segment.y }}" width="{{ segment.width }}" height="{{ segment.height }}" rx="2" fill="{{ segment.color }}"><title>{{ segment.title }}</title></rect>{% endfor %}{% endfor %}
+      {% else %}
+        {% for serie in chart.series %}<path class="chart-series{% if serie.dashed %} chart-series-dashed{% endif %}" d="{{ serie.path }}" stroke="{{ serie.color }}"/>{% endfor %}
+        {% for serie in chart.series|reverse %}{% for point in serie.points %}<circle class="chart-point{% if point.closed %} chart-point-closed{% endif %}{% if serie.points|length == 1 %} chart-point-single{% endif %}" data-chart-point-index="{{ point.index }}" cx="{{ point.x }}" cy="{{ point.y }}" r="{{ '5.5' if serie.points|length == 1 else '3.5' }}" fill="{{ serie.color }}"{% if serie.points|length == 1 %} stroke="#ffffff" stroke-width="2.5"{% endif %}><title>{{ point.title }}</title></circle>{% endfor %}{% endfor %}
+      {% endif %}
+      <line class="chart-crosshair" data-chart-crosshair x1="0" x2="0" y1="{{ chart.plot.top }}" y2="{{ chart.plot.bottom }}" hidden aria-hidden="true"/>
+      {% for label in chart.x_labels %}<text class="chart-x-label" x="{{ label.x }}" y="{{ chart.height - 20 }}" text-anchor="{{ label.anchor }}">{{ label.label }}</text>{% endfor %}
+    </svg>
+    <div class="chart-tooltip" id="{{ chart.id }}-tooltip" data-chart-tooltip role="tooltip" aria-live="polite" aria-atomic="true" hidden>
+      <div class="chart-tooltip-heading"><strong data-chart-tooltip-label></strong><button type="button" data-chart-tooltip-close aria-label="Fechar valores do gráfico">×</button></div>
+      <ul data-chart-tooltip-values></ul>
+    </div>
+  </div>
+  <p class="chart-interaction-hint">Passe o mouse ou toque no gráfico para ver os valores exatos.</p>
+  <ul class="chart-legend" aria-label="Legenda do gráfico">{% for serie in chart.series %}<li><span class="{% if chart.kind == 'stacked_bar' %}legend-swatch{% else %}legend-line legend-series-{{ loop.index }}{% if serie.dashed %} legend-dashed{% endif %}{% endif %}" {% if chart.kind == 'stacked_bar' %}style="--legend-color:{{ serie.color }}"{% endif %} aria-hidden="true"></span>{{ serie.label }}</li>{% endfor %}</ul>
+</figure>
+{% endif %}
+{%- endmacro %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% set initial = initial|default({}, true) %}
+{% set context = nav_context|default({}, true) %}
+{% set context_month = context.month|default(month|default('', true), true) %}
+{% set context_person = context.person|default(person|default('Família', true), true) %}
+{% set context_horizon = context.horizon|default(horizon|default('12', true), true) %}
+{% set clean_nav_query = nav_query|default('', true)|replace('?', '', 1) %}
+{% set editing_series_scope = editing_series|default(false, true) %}
+{% set recurring_initial = initial.repeat_monthly|default(false, true) or (initial.id|default(false, true) and initial.type|default('', true) in ['Receita', 'Fixo', 'Reserva', 'Caixinha', 'Saque Caixinha', 'Transferência'] and (initial.end_month is none or initial.end_month != initial.start_month)) %}
+{% set duplicate_rows = duplicates|default([], true) %}
+{% set form_error = error|default('', true) %}
+{% set editing_id = initial.id|default('', true) %}
+{% set card_closing_days = card_closing_days|default((settings|default({}, true)).get('card_closing_days', {}), true) %}
+{% set initial_first_bill = initial.first_bill_month|default('', true) %}
+{% if not initial_first_bill %}{% set initial_first_bill = first_bill|default('', true) %}{% endif %}
+{% block content %}
+{% if form_error %}<div class="alert alert-warning" role="alert">{{ form_error }}</div>{% endif %}
+
+{% if initial._duplicate_source_description|default('', true) %}<section class="alert alert-info duplicate-source-note" role="status"><strong>Nova cópia de “{{ initial._duplicate_source_description }}”</strong><p>A data sugerida é hoje. O original não foi alterado e nada será gravado até você salvar. Recorrências mensais viram uma ocorrência única; compras parceladas mantêm as condições da compra.{% if initial._duplicate_reserve_removed|default('', true) %} A reserva “{{ initial._duplicate_reserve_removed }}” não está planejada neste mês e não foi copiada; selecione outra, se necessário.{% endif %}</p></section>{% endif %}
+{% if duplicate_rows %}
+<section class="alert alert-warning duplicate-warning" role="alert" aria-labelledby="duplicate-title">
+  <strong id="duplicate-title">Encontramos possível(is) duplicata(s)</strong>
+  <p>Revise os registros abaixo. Nada será mesclado ou salvo automaticamente.</p>
+  <ul>
+    {% for duplicate in duplicate_rows %}
+    <li>
+      <div><strong>{{ duplicate.description|default('Sem descrição', true) }}</strong> · {{ duplicate.amount|default(duplicate.total_amount|default(0, true), true)|brl }} · {{ duplicate.date|default(duplicate.transaction_date|default('—', true), true) }} · {{ duplicate.account|default(duplicate.account_card|default('Conta não informada', true), true) }} · {{ duplicate.type|default('Tipo não informado', true) }}</div>
+      {% if duplicate.id %}
+        {% set duplicate_return_page = return_page|default('', true) or 'transactions' %}
+        <div class="duplicate-actions" aria-label="Ações para {{ duplicate.description|default('movimentação', true) }}">
+          <a href="/transactions/{{ duplicate.id }}/edit?month={{ context_month|urlencode }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}&amp;return_page={{ duplicate_return_page|urlencode }}{% if return_card %}&amp;return_card={{ return_card|urlencode }}{% endif %}{% if return_month %}&amp;return_month={{ return_month|urlencode }}{% endif %}">Editar</a>
+          <a href="/transactions/{{ duplicate.id }}/delete?month={{ context_month|urlencode }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}&amp;return_page={{ duplicate_return_page|urlencode }}{% if return_card %}&amp;return_card={{ return_card|urlencode }}{% endif %}{% if return_month %}&amp;return_month={{ return_month|urlencode }}{% endif %}">Excluir</a>
+        </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<form id="transaction-entry-form" method="post" action="{% if editing_id %}/transactions/{{ editing_id }}/edit{% else %}/transactions/new{% endif %}{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}" class="panel transaction-form" data-transaction-form data-card-billing-new="{{ '0' if editing_id else '1' }}" data-card-closing-days="{{ card_closing_days|tojson|forceescape }}">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="hidden" name="_context_month" value="{{ context_month }}">
+  <input type="hidden" name="_context_person" value="{{ context_person }}">
+  <input type="hidden" name="_context_horizon" value="{{ context_horizon }}">
+  <input type="hidden" name="return_page" value="{{ return_page|default('', true) }}">
+  <input type="hidden" name="return_card" value="{{ return_card|default('', true) }}">
+  <input type="hidden" name="return_month" value="{{ return_month|default('', true) }}">
+  {% if initial._duplicate_source_description|default('', true) %}<input type="hidden" name="_duplicate_source_description" value="{{ initial._duplicate_source_description }}">{% endif %}
+  {% if initial._duplicate_reserve_removed|default('', true) %}<input type="hidden" name="_duplicate_reserve_removed" value="{{ initial._duplicate_reserve_removed }}">{% endif %}
+  <input type="hidden" name="duplicate_token" value="{{ duplicate_token|default('', true) }}">
+  {% if entry_version|default('', true) %}<input type="hidden" name="_entry_version" value="{{ entry_version }}">{% endif %}
+  {% if initial._notification_token|default('', true) %}<input type="hidden" name="_notification_token" value="{{ initial._notification_token }}"><div class="alert alert-warning notification-review-note" role="status">Confira os dados detectados; somente Salvar cria o lançamento.</div>{% endif %}
+  {% if initial._ai_review_token|default('', true) %}<input type="hidden" name="_ai_review_token" value="{{ initial._ai_review_token }}">{% endif %}
+  {% if duplicate_rows %}<label class="check-label duplicate-confirm"><input type="checkbox" name="confirm_duplicate" value="yes" required {% if initial.confirm_duplicate|default('', true) in ['yes', 'on'] %}checked{% endif %}> Confirmo que este lançamento é distinto</label>{% endif %}
+  <div class="form-grid">
+    <label>Data do lançamento<input type="date" name="transaction_date" value="{{ initial.transaction_date|default(today, true) }}" required><small>Dia em que a compra ou movimentação ocorreu.</small></label>
+    <label>Tipo<select name="type" required data-type-selector>{% for item in types|default([], true) %}{% set type_symbol = '+' if item in ['Receita', 'Saque Caixinha'] else '↔' if item == 'Transferência' else '·' if item == 'Reserva' else '−' %}<option value="{{ item }}" {% if initial.type|default('Débito/Pix', true) == item %}selected{% endif %}>{{ type_symbol }} {{ item }}</option>{% endfor %}</select><small>＋ entra · − sai do caixa · ↔ transferência entre contas · Reserva é verba planejada, não gasto confirmado.</small></label>
+    <label>Descrição<input type="text" name="description" value="{{ initial.description|default('', true) }}" maxlength="255" required></label>
+    <label>Categoria<input type="text" name="category" list="category-list" value="{{ initial.category|default('', true) }}"><datalist id="category-list">{% for category in categories|default([], true) %}<option value="{{ category }}">{% endfor %}</datalist></label>
+    {% if category_groups %}<label>Sugestões por grupo<select data-category-suggestion><option value="">Escolher uma categoria existente</option>{% for group in category_groups %}<optgroup label="{{ group.name }}">{% for category in group.categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</optgroup>{% endfor %}</select></label>{% endif %}
+    <label>Membro<select name="member"><option value="Família" {% if initial.member|default('Família', true) == 'Família' %}selected{% endif %}>Família</option>{% for member in members|default([], true) %}<option value="{{ member }}" {% if initial.member|default('Família', true) == member %}selected{% endif %}>{{ member }}</option>{% endfor %}</select></label>
+    <label>Conta ou cartão<select name="account_card" data-card-selector required>{% if initial._notification_token|default('', true) and not initial.account_card|default('', true) %}<option value="" selected disabled>Escolha a conta ou cartão</option>{% endif %}{% for account in accounts|default([], true) %}<option value="{{ account.name }}" {% if initial.account_card|default('', true) == account.name %}selected{% endif %}>{{ account.name }} · conta</option>{% endfor %}{% for card in cards|default([], true) %}<option value="{{ card.name }}" data-closing-day="{{ card.closing_day|default(card_closing_days.get(card.name, 3), true) }}" {% if initial.account_card|default('', true) == card.name %}selected{% endif %}>{{ card.name }} · cartão</option>{% endfor %}</select></label>
+    <label>Valor total (R$)<input type="number" name="total_amount" data-total-amount min="{% if initial.type|default('Débito/Pix', true) == 'Crédito à vista' and initial.card_flag|default(0, true) == 1 %}-1000000000{% else %}0.01{% endif %}" step="0.01" value="{{ total_amount|default(initial.total_amount|default(initial.amount|default('', true), true), true) }}" required><small>Em compra parcelada, informe o total da compra.</small><small data-negative-amount-hint hidden>Para registrar estorno no cartão, use um valor negativo em Crédito à vista.</small></label>
+    <label data-show-for="installments" {% if initial.type|default('Débito/Pix', true) != 'Parcelado' %}hidden{% endif %}>Número de parcelas<input type="number" name="installment_count" data-installment-count min="2" max="120" step="1" value="{{ initial.installment_count if initial.type|default('') == 'Parcelado' else 2 }}" {% if initial.type|default('') != 'Parcelado' %}disabled{% else %}required{% endif %}><small>O valor da parcela é calculado automaticamente.</small></label>
+    <label data-show-for="card" data-card-billing-field {% if initial.type|default('Débito/Pix', true) not in ['Crédito à vista', 'Parcelado'] %}hidden{% endif %}>Mês da primeira fatura<input type="month" name="first_bill_month" data-first-bill-month value="{{ initial_first_bill[:7] }}"><span class="status-pill status-neutral" data-first-bill-mode>A escolher</span><small data-first-bill-status role="status" aria-live="polite">Escolha o cartão e informe a data para ver a sugestão automática.</small><button class="button button-quiet" type="button" data-reset-first-bill>Usar sugestão</button></label>
+    <label data-show-for="transfer" {% if initial.type|default('Débito/Pix', true) != 'Transferência' %}hidden{% endif %}>Conta de destino<select name="destination_account" data-transfer-destination><option value="">Selecione a conta de destino</option>{% for account in accounts|default([], true) %}<option value="{{ account.name }}" {% if initial.destination_account|default('', true) == account.name %}selected{% endif %}>{{ account.name }}</option>{% endfor %}</select></label>
+    <div class="reserve-link-field">
+      {% if stale_linked_pot %}<input type="hidden" name="preserve_linked_pot" value="{{ stale_linked_pot }}" data-preserve-linked-pot>{% endif %}
+      <label for="linked-pot-select">Descontar de uma reserva (opcional)</label>
+      <select id="linked-pot-select" name="linked_pot" data-reserve-selector data-reserve-options-url="/api/reserve-options"><option value="" {% if not initial.linked_pot|default('', true) or stale_linked_pot %}selected{% endif %}>Sem reserva vinculada</option>{% for reserve_name in reserve_names|default([], true) %}<option value="{{ reserve_name }}" {% if initial.linked_pot|default('', true) == reserve_name %}selected{% endif %}>{{ reserve_name }}</option>{% endfor %}</select>
+      {% if stale_linked_pot %}<small data-stale-reserve-warning role="status">O vínculo atual “{{ stale_linked_pot }}” não está planejado nesta competência. Antes de salvar, escolha uma reserva válida ou marque a remoção explícita; o vínculo não será removido automaticamente.</small><label class="check-label" data-clear-stale-label><input type="checkbox" name="clear_stale_link" value="yes" data-clear-stale-link> Remover o vínculo atual fora da competência</label>{% endif %}
+      <small data-reserve-options-status role="status" aria-live="polite">As opções acompanham a competência da data do lançamento.</small>
+    </div>
+    <label data-show-for="repeat-end">Repetição mensal até<input type="month" name="end_month" value="{{ (initial.end_month|default('', true))[:7] }}"><small>Deixe vazio para repetir sem limite final.</small></label>
+  </div>
+
+  <label class="check-label" data-repeat-toggle><input type="checkbox" name="repeat_monthly" value="on" {% if recurring_initial %}checked{% endif %}> Repetir mensalmente</label>
+
+  {% if editing_series_scope %}
+  <section class="series-scope-note" aria-labelledby="series-scope-title">
+    <strong id="series-scope-title">Esta alteração vale para a série inteira.</strong>
+    <p>{% if series_period_count|default(0, true) %}{{ series_period_count }} competências afetadas.{% elif series_start|default(initial.start_month|default('', true), true) and series_end|default(initial.end_month|default('', true), true) %}Período: {{ series_start|default(initial.start_month, true) }} a {{ series_end|default(initial.end_month, true) }}.{% else %}Recorrência sem limite final.{% endif %}</p>
+    {% if initial.type|default('', true) in ['Receita', 'Fixo', 'Reserva', 'Caixinha', 'Saque Caixinha', 'Transferência'] or (initial.type|default('', true) in ['Crédito à vista', 'Parcelado'] and initial.card_flag|default(0, true) == 1) %}<p><a class="button button-secondary" href="/transactions/{{ editing_id }}/occurrence?month={{ return_month|default(context_month, true)|urlencode }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}{% if return_page %}&amp;return_page={{ return_page|urlencode }}{% endif %}{% if return_card %}&amp;return_card={{ return_card|urlencode }}{% endif %}{% if return_month %}&amp;return_month={{ return_month|urlencode }}{% endif %}">{% if initial.type|default('', true) in ['Crédito à vista', 'Parcelado'] %}Ajustar parcela desta fatura{% else %}Ajustar valor só desta competência{% endif %}</a></p>{% endif %}
+    <label class="check-label"><input type="checkbox" name="confirm_series" value="yes" required {% if initial.confirm_series|default('', true) in ['yes', 'on'] %}checked{% endif %}> Confirmo a alteração de toda a série</label>
+    {% if series_end is none %}<label class="check-label"><input type="checkbox" name="confirm_series_end" value="yes"> Se eu definir fim ou retirar a repetição, confirmo o encerramento desta recorrência aberta</label>{% endif %}
+  </section>
+  {% endif %}
+
+  <div class="form-actions"><button class="button button-primary" type="submit">{{ 'Salvar alterações' if editing_id else 'Salvar lançamento' }}</button><a class="button button-quiet" href="{{ cancel_url|default('/transactions', true) }}">Cancelar</a></div>
+</form>
+{% if editing_id %}<p><a class="text-link negative" href="/transactions/{{ editing_id }}/delete{% if clean_nav_query or return_page %}?{% if clean_nav_query %}{{ clean_nav_query }}{% endif %}{% if clean_nav_query and return_page %}&amp;{% endif %}{% if return_page %}return_page={{ return_page|urlencode }}{% endif %}{% if return_card %}&amp;return_card={{ return_card|urlencode }}{% endif %}{% if return_month %}&amp;return_month={{ return_month|urlencode }}{% endif %}{% endif %}">Excluir este lançamento</a></p>{% endif %}
+<script defer src="{{ asset_url('/static/js/card-billing.js') }}"></script>
+{% endblock %}

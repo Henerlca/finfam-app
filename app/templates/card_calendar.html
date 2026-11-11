@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "_chart.html" import chart_svg %}
+{% set calendar_rows = calendar|default(cards|default([])) %}
+{% set context = nav_context|default({}, true) %}
+{% set context_month = context.month|default(month|default('', true), true) %}
+{% set context_person = context.person|default(person|default('Família', true), true) %}
+{% set context_horizon = context.horizon|default(horizon|default('12', true), true) %}
+
+{% macro sort_link(label, accessible_label, field) %}<a href="{{ purchase_sort_urls[field] }}" aria-label="Ordenar por {{ accessible_label }}{% if sort_field == field %}, {% if sort_direction == 'asc' %}crescente{% else %}decrescente{% endif %}{% endif %}">{{ label }}{% if sort_field == field %}<span aria-hidden="true">{% if sort_direction == 'asc' %} ↑{% else %} ↓{% endif %}</span>{% endif %}</a>{% endmacro %}
+
+{% macro purchase_table(row, context_person, context_horizon, card_name) %}
+<div class="card-purchase-table-wrap">
+  <table class="card-purchases-table" aria-label="Compras da fatura de {{ row.month|month_label }}">
+    <colgroup><col class="purchase-date-col"><col class="purchase-description-col"><col class="purchase-installment-col"><col class="purchase-amount-col"></colgroup>
+    <thead><tr><th scope="col">{{ sort_link('Data', 'data da compra', 'date') }}</th><th scope="col">Compra</th><th scope="col">Parcela</th><th scope="col" class="amount-column">{{ sort_link('Valor', 'valor', 'amount') }}</th></tr></thead>
+    <tbody>
+    {% for purchase in row.purchases %}
+      <tr>
+        <td class="purchase-date">{{ purchase.purchase_date_label|default('—') }}</td>
+        <td class="purchase-description">
+          {% if purchase.id %}<a class="card-purchase-edit-link" href="/transactions/{{ purchase.id }}/edit?month={{ row.month_key }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}&amp;return_page=cards&amp;return_card={{ card_name|urlencode }}&amp;return_month={{ row.month_key }}">{{ purchase.description|default('Compra', true) }}</a>{% else %}<strong>{{ purchase.description|default('Compra', true) }}</strong>{% endif %}
+          <small>{{ purchase.category|default('Sem categoria', true) }}{% if purchase.linked_pot %} · {{ purchase.linked_pot }}{% endif %}</small>
+        </td>
+        <td class="purchase-installment">{% if purchase.installment_number %}{{ purchase.installment_number }} de {{ purchase.installment_count }}{% elif purchase.installment %}Parcelado{% else %}À vista{% endif %}</td>
+        <td class="purchase-amount amount-column"><strong class="{{ 'positive' if purchase.amount < 0 else '' }}">{{ purchase.amount|brl }}</strong>{% if purchase.amount < 0 %}<small class="positive">Estorno</small>{% endif %}{% if purchase.installment_adjusted %}<small>Valor ajustado</small>{% endif %}</td>
+      </tr>
+      {% if purchase.id %}
+      <tr class="purchase-actions-row"><td colspan="4"><div class="card-purchase-actions">
+        <a href="/transactions/new?duplicate_id={{ purchase.id }}&amp;month={{ row.month_key }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}&amp;return_page=cards&amp;return_card={{ card_name|urlencode }}&amp;return_month={{ row.month_key }}">Duplicar</a>
+        <a href="/transactions/{{ purchase.id }}/occurrence?month={{ row.month_key }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}&amp;return_page=cards&amp;return_card={{ card_name|urlencode }}&amp;return_month={{ row.month_key }}">Ajustar valor desta fatura</a>
+        <a class="text-link negative" href="/transactions/{{ purchase.id }}/delete?month={{ row.month_key }}&amp;person={{ context_person|urlencode }}&amp;horizon={{ context_horizon|urlencode }}&amp;return_page=cards&amp;return_card={{ card_name|urlencode }}&amp;return_month={{ row.month_key }}">Excluir</a>
+      </div></td></tr>
+      {% endif %}
+    {% else %}
+      <tr><td colspan="4" class="empty-cell">Nenhuma compra FinFam prevista para esta fatura.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% block content %}
+{% if card_options %}
+<section class="section-block card-calendar-selector-panel" aria-label="Selecionar cartão">
+  <div class="section-heading"><div><p class="eyebrow">Próximas faturas</p><h2>Escolha um cartão</h2><p class="muted">Veja as compras da fatura do mês e também da próxima fatura aberta.</p></div></div>
+  <form class="card-calendar-selector-form" method="get" action="/cards/calendar">
+    <input type="hidden" name="month" value="{{ context_month }}"><input type="hidden" name="person" value="{{ context_person }}"><input type="hidden" name="horizon" value="{{ context_horizon }}">
+    <label for="calendar-card-selector">Cartão</label>
+    <div class="card-calendar-selector-controls">
+      <select id="calendar-card-selector" name="card" data-card-selector aria-controls="selected-card-calendar">{% for option in card_options %}<option value="{{ option.name }}" {% if option.name == card_filter %}selected{% endif %}>{{ option.name }}{% if option.bank %} · {{ option.bank }}{% endif %}</option>{% endfor %}</select>
+      <button class="button button-secondary" type="submit">Abrir faturas</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+{% if calendar_rows %}
+  {% for card in calendar_rows %}
+  <section class="section-block card-calendar-card" id="selected-card-calendar">
+    <div class="section-heading"><div><p class="eyebrow">{{ card.bank|default('') }}</p><h2>{{ card.name|default(card.card|default('Cartão')) }}</h2></div><span class="status-pill status-neutral">Limite {{ card.limit|brl }}</span></div>
+    {% if card.chart %}{{ chart_svg(card.chart) }}{% endif %}
+
+    <div class="table-scroll card-calendar-desktop">
+      <table class="card-calendar-summary-table"><colgroup><col class="summary-month-col"><col class="summary-invoice-col"><col class="summary-installments-col"><col class="summary-committed-col"><col class="summary-available-col"><col class="summary-status-col"></colgroup><thead><tr><th>Mês</th><th>Fatura</th><th>Parcelas</th><th>Comprometido</th><th>Disponível</th><th>Status</th></tr></thead><tbody>
+        {% for row in card.months|default(card.rows|default([])) %}
+          <tr><th scope="row">{{ row.month|month_label }}</th><td><strong>{{ row.invoice|brl }}</strong></td><td>{{ row.parcelas|brl }}</td><td>{{ row.committed|brl }}</td><td class="{{ 'negative' if row.available < 0 else 'positive' }}">{{ row.available|brl }}</td><td><span class="status-pill {{ 'status-good' if row.paid else 'status-neutral' }}">{{ row.status_label|default('Baixa confirmada' if row.paid else 'Fatura prevista') }}</span></td></tr>
+          {% if row.month_key == context_month or row.month_key == open_invoice_month %}<tr class="table-detail-row"><td colspan="6"><details class="card-open-invoice-details" open><summary>{% if row.month_key == context_month %}Compras da fatura atual{% else %}Compras da próxima fatura aberta{% endif %} · {{ row.purchases|length }}</summary>{{ purchase_table(row, context_person, context_horizon, card.name|default(card.card|default('Cartão'))) }}</details></td></tr>{% endif %}
+        {% endfor %}
+      </tbody></table>
+    </div>
+
+    <div class="card-calendar-mobile-list" aria-label="Resumo mensal de {{ card.name|default(card.card|default('Cartão')) }}">
+      {% for row in card.months|default(card.rows|default([])) %}
+      <article class="card-calendar-mobile-row">
+        <header><h3>{{ row.month|month_label }}</h3><span class="status-pill {{ 'status-good' if row.paid else 'status-neutral' }}">{{ row.status_label|default('Baixa confirmada' if row.paid else 'Fatura prevista') }}</span></header>
+        <dl class="card-calendar-mobile-metrics"><div><dt>Fatura</dt><dd>{{ row.invoice|brl }}</dd></div><div><dt>Parcelas</dt><dd>{{ row.parcelas|brl }}</dd></div><div><dt>Comprometido</dt><dd>{{ row.committed|brl }}</dd></div><div><dt>Disponível</dt><dd class="{{ 'negative' if row.available < 0 else 'positive' }}">{{ row.available|brl }}</dd></div></dl>
+        {% if row.month_key == context_month or row.month_key == open_invoice_month %}<details class="card-open-invoice-details" open><summary>{% if row.month_key == context_month %}Compras da fatura atual{% else %}Compras da próxima fatura aberta{% endif %} · {{ row.purchases|length }}</summary>{{ purchase_table(row, context_person, context_horizon, card.name|default(card.card|default('Cartão'))) }}</details>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+{% else %}
+  <div class="empty-state panel"><h2>Sem cartões no período</h2><p>Escolha outro mês ou horizonte. O calendário usa somente as competências fornecidas.</p></div>
+{% endif %}
+{% endblock %}

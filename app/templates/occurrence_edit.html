@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set context = nav_context|default({}, true) %}
+{% set context_month = context.month|default(target_month_key, true) %}
+{% set context_person = context.person|default('Família', true) %}
+{% set context_horizon = context.horizon|default('12', true) %}
+{% set clean_nav_query = occurrence_context_query|default('', true)|replace('?', '', 1) %}
+{% block content %}
+{% if error %}<div class="alert alert-warning" role="alert">{{ error }}</div>{% endif %}
+
+<section class="panel occurrence-edit-intro" aria-labelledby="occurrence-title">
+  <p class="eyebrow">{% if card_adjustment %}Ajuste da fatura{% else %}Ajuste localizado{% endif %} · {{ target_month|month_label }}</p>
+  <h2 id="occurrence-title">{% if card_adjustment %}Somente esta parcela{% else %}Somente esta competência{% endif %}</h2>
+  <p><strong>{{ row.description }}</strong> · {{ row.type }} · {{ row.account_card }}</p>
+  {% if card_adjustment %}
+  <p class="muted">O ajuste muda somente o valor final desta fatura. O total da compra e as outras parcelas permanecem iguais. Competências fechadas não podem ser alteradas.</p>
+  {% else %}
+  <p class="muted">As competências anteriores permanecem intactas. A ocorrência corrigida fica neste mês e a próxima começa no mês seguinte, preservando o dia original (limitado ao último dia do mês).</p>
+  {% endif %}
+</section>
+
+{% if target_closed %}<div class="alert alert-warning" role="alert"><strong>Competência fechada.</strong> {{ target_month|month_label }} não pode ser alterada até ser reaberta. Nenhum dado foi modificado.</div>{% endif %}
+
+<section class="panel occurrence-edit-panel" aria-labelledby="occurrence-form-title">
+  <div class="section-heading">
+    <div><p class="eyebrow">{{ target_month|month_label }}</p><h2 id="occurrence-form-title">{% if card_adjustment %}Valor desta parcela{% else %}Valor da competência{% endif %}</h2></div>
+    <span class="status-pill">{{ amount_value|brl }} atual</span>
+  </div>
+
+  {% if card_adjustment %}
+  <dl class="occurrence-summary">
+    <div><dt>Compra original</dt><dd>{{ row.total_amount|brl }}</dd></div>
+    <div><dt>Valor calculado da parcela</dt><dd>{{ base_amount|brl }}</dd></div>
+    <div><dt>Fatura após o ajuste</dt><dd>{{ amount_value|brl }}</dd></div>
+  </dl>
+  {% else %}
+  <dl class="occurrence-summary">
+    <div><dt>Plano atual</dt><dd>{{ old_plan.start|month_label }} até {% if old_plan.open %}sem fim{% else %}{{ old_plan.end|month_label }}{% endif %}</dd></div>
+    <div><dt>Competência afetada</dt><dd>{{ target_month|month_label }} · {{ row.amount|brl }} → {{ amount_value|brl }}</dd></div>
+  </dl>
+  {% endif %}
+
+  <form method="post" action="/transactions/{{ row.id }}/occurrence{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}" class="transaction-form occurrence-edit-form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="_entry_version" value="{{ entry_version }}">
+    <input type="hidden" name="occurrence_month" value="{{ target_month_key }}">
+    <input type="hidden" name="_context_month" value="{{ context_month }}">
+    <input type="hidden" name="_context_person" value="{{ context_person }}">
+    <input type="hidden" name="_context_horizon" value="{{ context_horizon }}">
+    <input type="hidden" name="return_page" value="{{ return_page|default('', true) }}">
+    <input type="hidden" name="return_card" value="{{ return_card|default('', true) }}">
+    <input type="hidden" name="return_month" value="{{ return_month|default('', true) }}">
+    <div class="form-grid">
+      <label>{% if card_adjustment %}Valor final desta parcela na fatura (R$){% else %}Valor desta competência (R$){% endif %}
+        <input type="number" name="amount" {% if not allow_negative_amount %}min="0.01"{% endif %} step="0.01" value="{{ amount_value }}" required {% if target_closed %}disabled{% endif %}>
+        {% if card_adjustment %}{% if allow_negative_amount %}<small>Use o valor exato do banco. Valor negativo representa crédito/estorno; a compra-base não é alterada.</small>{% else %}<small>Informe o valor positivo desta parcela. Para estorno, registre um lançamento separado de Crédito à vista com valor negativo.</small>{% endif %}{% else %}<small>O restante da recorrência continua com o valor atual.</small>{% endif %}
+      </label>
+    </div>
+    {% if target_paid %}<label class="check-label occurrence-paid-confirm"><input type="checkbox" name="confirm_paid_change" value="yes" {% if form_confirm_paid|default(false) %}checked{% endif %} {% if target_closed %}disabled{% endif %}> Alterar valor já confirmado (a baixa continua confirmada)</label>{% endif %}
+    <p class="occurrence-audit-note">Esta alteração será registrada no histórico.</p>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit" {% if target_closed %}disabled{% endif %}>Salvar somente {{ target_month|month_label }}</button>
+      {% if card_adjustment and override_exists %}<button class="button button-secondary" type="submit" name="reset_override" value="yes" formnovalidate {% if target_closed %}disabled{% endif %}>Restaurar valor calculado</button>{% endif %}
+      <a class="button button-quiet" href="{{ cancel_url|default('/transactions', true) }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+
+{% if not card_adjustment %}
+<section class="panel occurrence-old-plan" aria-labelledby="occurrence-old-plan-title">
+  <h2 id="occurrence-old-plan-title">O que muda</h2>
+  <ul>
+    <li><strong>{{ target_month|month_label }}</strong>: {{ row.amount|brl }} → {{ amount_value|brl }}.</li>
+    <li>Antes da competência, os valores e a data original permanecem iguais.</li>
+    <li>Depois da competência, a recorrência continua no próximo mês com o dia original ajustado ao calendário.</li>
+    <li>{% if old_plan.open %}A recorrência permanece sem mês final.{% else %}O fim original, {{ old_plan.end|month_label }}, permanece preservado.{% endif %}</li>
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

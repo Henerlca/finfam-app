@@ -1,0 +1,121 @@
+/* Identidade cromática Hener & Ju — azul, neutros e estados semânticos. */
+:root {
+  color-scheme: light;
+  --ink: #17273d;
+  --muted: #5d6f82;
+  --petrol: #173f68;
+  --petrol-2: #2b6797;
+  --sage: #d7e8f7;
+  --green: #2f719d;
+  --green-bg: #eaf3fa;
+  --paper: #f5f8fc;
+  --surface: #ffffff;
+  --line: #dfe7f0;
+  --shadow: 0 10px 30px rgba(23, 63, 104, .07);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible { outline-color: #6c9dc5; }
+
+.month-chip,
+.activity-date,
+.bottom-nav a[aria-current="page"],
+.more-menu summary:hover,
+.more-menu[open] summary,
+.global-context>summary,
+.topbar .global-context>summary,
+.topbar .global-context[open]>summary {
+  background-color: #e8f1fa;
+  color: var(--petrol);
+}
+
+.brand,
+.page-heading h1,
+.section-heading h2,
+.section-block h2,
+.details-panel summary,
+.empty-state h2,
+.empty-mark,
+.card-limit .limit-value strong,
+.transaction-card-amount,
+.metric-focus .metric-number,
+.metric-bank .metric-number,
+.assistant-drawer-header h2,
+.assistant-message strong,
+.assistant-proposal h3 { color: var(--petrol); }
+
+.button-primary { background: var(--petrol); }
+.button-primary:hover { background: #245783; }
+.button-secondary {
+  background: #e8f1fa;
+  color: var(--petrol);
+  border-color: #d0e1f1;
+}
+
+.private-badge,
+.global-context-mark,
+.metric-positive .metric-number,
+.metric-positive>strong,
+.positive,
+.status-good { color: #2f719d; }
+
+.metric-positive {
+  background: linear-gradient(135deg, #eaf3fa, #fff 74%);
+  border-color: #d4e5f4;
+}
+.metric-focus {
+  background: linear-gradient(135deg, #e7f1fa, #fff 75%);
+  border-color: #d2e1ef;
+}
+.metric-bank {
+  border-color: #c9dceb;
+  box-shadow: inset 4px 0 0 #2b6797, var(--shadow);
+}
+
+.alert-good,
+.status-good {
+  background: #eaf3fa;
+  border-color: #d4e5f4;
+  color: #285b83;
+}
+.cash-paid { border-color: #cfe0ef; background: #f8fbfe; }
+
+.table-scroll { background: #fff; }
+thead th { background: #edf3f8; color: #50677d; }
+tbody tr:hover { background: #f5f9fd; }
+.progress,
+.progress progress::-webkit-progress-bar,
+.pot-progress,
+.pot-progress::-webkit-progress-bar { background: #e6edf5; }
+.progress progress::-webkit-progress-value,
+.progress progress::-moz-progress-bar,
+.pot-progress::-webkit-progress-value,
+.pot-progress::-moz-progress-bar { background: #5989b4; }
+
+.chart-gridline { stroke: #e1eaf2; }
+.chart-point-closed { stroke: #173f68; }
+.legend-line { border-color: #2b6797; }
+.legend-series-1 { border-color: #2b6797; }
+.legend-series-3 { border-color: #79a7d0; }
+.legend-dashed { border-top-style: dashed; }
+.assistant-preview {
+  background: #f2f7fb;
+  border-color: #dfe8f1;
+}
+.assistant-preview p strong,
+.ai-answer h3 { color: #2f719d; }
+.ai-answer {
+  background: #f3f8fc;
+  border-color: #d4e5f3;
+}
+.assistant-message-user { background: #edf5fb; border-color: #d9e7f3; }
+.assistant-drawer-surface { box-shadow: -18px 0 48px rgba(23, 63, 104, .14); }
+.assistant-drawer::backdrop { background: rgba(18, 42, 67, .38); }
+.global-context-popover { box-shadow: 0 18px 42px rgba(23, 63, 104, .16); }
+.bottom-nav .nav-action span,
+.bottom-nav .nav-assistant span { background: #2b6797; }
+.bottom-nav a[aria-current="page"] { background: #e8f1fa; color: #173f68; }

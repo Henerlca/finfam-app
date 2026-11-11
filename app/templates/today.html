@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_chart.html" import chart_svg %}
+{% set context = nav_context|default({}, true) %}
+{% set context_month = context.month|default(month|default('', true), true) %}
+{% set context_person = context.person|default(person|default('Família', true), true) %}
+{% set context_horizon = context.horizon|default(horizon|default('12', true), true) %}
+{% set clean_nav_query = nav_query|default('', true)|replace('?', '', 1) %}
+{% set filter_values = filters|default({}, true) %}
+{% set current_q = filter_values.q|default(query|default(q|default('', true), true), true) %}
+{% set current_bank = filter_values.bank|default(bank_filter|default(bank|default('', true), true), true) %}
+{% set current_status = filter_values.status|default(status_filter|default('all', true), true) %}
+{% set total_items = items_total|default(items|length, true) %}
+{% set pending_total = pending_total_count|default(summary.pending_items|default(0, true), true) %}
+{% set filtered_pending = namespace(count=0) %}
+{% for item in items|default([], true) %}{% if not item.paid %}{% set filtered_pending.count = filtered_pending.count + 1 %}{% endif %}{% endfor %}
+{% block content %}
+<form method="get" action="/today" class="filter-bar panel today-filters">
+  <label>Buscar<input type="search" name="q" value="{{ current_q }}" placeholder="Descrição ou conta"></label>
+  <label>Conta<select name="bank"><option value="">Todas</option>{% for item in banks|default([], true) %}<option value="{{ item }}" {% if item == current_bank %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+  <label>Baixa<select name="status"><option value="all" {% if current_status == 'all' %}selected{% endif %}>Todas</option><option value="confirmed" {% if current_status == 'confirmed' %}selected{% endif %}>Confirmadas</option><option value="pending" {% if current_status == 'pending' %}selected{% endif %}>Pendentes</option><option value="predicted" {% if current_status == 'predicted' %}selected{% endif %}>Previstas</option></select></label>
+  <input type="hidden" name="month" value="{{ context_month }}"><input type="hidden" name="person" value="{{ context_person }}"><input type="hidden" name="horizon" value="{{ context_horizon }}">
+  <button class="button button-primary" type="submit">Filtrar</button>
+</form>
+
+<section class="metric-row" id="cash-overview" aria-label="Resumo do caixa do mês">
+  <article class="metric-card"><span class="eyebrow">Saldo inicial estimado</span><strong>{{ summary.opening_total|brl }}</strong></article>
+  <article class="metric-card metric-positive"><span class="eyebrow">Receitas confirmadas</span><strong>{{ summary.income_paid|brl }}</strong></article>
+  <article class="metric-card"><span class="eyebrow">Gastos confirmados</span><strong>{{ summary.expenses_paid|brl }}</strong></article>
+  <article class="metric-card metric-bank"><span class="eyebrow">Saldo bancário pelas baixas</span><strong>{{ summary.live_total|brl }}</strong></article>
+</section>
+{% if context_person != 'Família' %}<p class="muted">Receitas e gastos: {{ context_person }}. Saldos e gráfico: contas de {{ context_person }}, incluindo movimentações compartilhadas.</p>{% endif %}
+<section class="metric-row internal-flows">
+  <article class="metric-card"><span class="eyebrow">Transferências internas</span><strong>{{ summary.internal_transfers|brl }}</strong></article>
+  <article class="metric-card"><span class="eyebrow">Saldo líquido das transferências</span><strong class="{{ 'negative' if summary.transfer_net < 0 else 'positive' }}">{{ summary.transfer_net|brl }}</strong></article>
+  <article class="metric-card"><span class="eyebrow">Aplicações em caixinha</span><strong>{{ summary.pot_contributions|brl }}</strong></article>
+  <article class="metric-card"><span class="eyebrow">Resgates de caixinha</span><strong>{{ summary.pot_withdrawals|brl }}</strong></article>
+</section>
+
+<div class="cash-filter-summary" role="status">{{ items|length }} item(ns) exibido(s) de {{ total_items }} · {{ pending_total }} pendência(s) no escopo selecionado.</div>
+{% if filtered_pending.count %}<div class="alert alert-warning cash-pending-note" role="status"><strong>{{ filtered_pending.count }} pendência(s) nos itens exibidos.</strong><span>Esta contagem acompanha os filtros atuais; revise cada item antes de marcar a baixa.</span></div>{% endif %}
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">{{ month_name }} · evolução diária</p><h2>Saldo confirmado e com previsões</h2></div></div>
+  {{ chart_svg(daily_chart) }}
+</section>
+
+<div class="section-heading">
+  <div><p class="eyebrow">Conciliação · {{ pending_total }} item(ns) sem baixa</p><h2>Caixa de {{ month_name }}</h2></div>
+  <form method="post" action="/cash/close"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="_context_month" value="{{ context_month }}"><input type="hidden" name="_context_person" value="{{ context_person }}"><input type="hidden" name="_context_horizon" value="{{ context_horizon }}"><input type="hidden" name="month" value="{{ context_month }}"><input type="hidden" name="person" value="{{ context_person }}"><input type="hidden" name="horizon" value="{{ context_horizon }}"><input type="hidden" name="q" value="{{ current_q }}"><input type="hidden" name="bank" value="{{ current_bank }}"><input type="hidden" name="status" value="{{ current_status }}"><input type="hidden" name="closed" value="{{ '0' if closed else '1' }}"><button class="button button-secondary" type="submit">{{ 'Reabrir mês' if closed else 'Fechar mês' }}</button></form>
+</div>
+
+{% if summary.account_balances %}<section class="section-block"><div class="section-heading"><div><p class="eyebrow">Saldos por instituição</p><h2>Saldo pelas baixas</h2></div></div><div class="detail-grid">{% for account in summary.account_balances %}<div><span>{{ account.account }} · {{ account.owner or 'Família' }}</span><strong>{{ account.live|brl }}</strong><small>Inicial {{ account.opening|brl }} · Movimento {{ account.paid_change|brl }}</small></div>{% endfor %}</div></section>{% endif %}
+
+{% set return_to = '/today' %}
+{% include "_daily_review.html" %}
+
+<details class="details-panel today-history-details" id="today-history">
+  <summary>Ver histórico do mês · {{ events|length }} registros</summary>
+  <section class="section-block">
+    <div class="section-heading"><div><p class="eyebrow">Agenda e histórico</p><h2>Atividade financeira</h2></div><a class="button button-primary" href="/transactions/new{% if clean_nav_query %}?{{ clean_nav_query }}{% endif %}">＋ Novo lançamento</a></div>
+    {% if events %}<div class="activity-list">{% for event in events %}{% set event_predicted = event.recurrence %}<article class="activity-card"><div class="activity-date" aria-label="{{ event.transaction_date.strftime('%d/%m/%Y') }}"><strong>{{ event.transaction_date.strftime('%d') }}</strong><small>{{ event.transaction_date.strftime('%b') }}</small></div><div class="activity-main"><strong>{{ event.description }}</strong><span>{{ event.category or event.type }} · {{ event.member }} · {{ event.account_card }}</span><small>{{ event.transaction_date.strftime('%d/%m/%Y') }} · {{ 'previsão recorrente' if event_predicted else 'lançamento' }}</small>{% if event.id %}<div class="activity-card-actions"><a class="text-link" href="/transactions/{{ event.id }}/edit?{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}return_page=today">Editar</a><a class="text-link negative" href="/transactions/{{ event.id }}/delete?{% if clean_nav_query %}{{ clean_nav_query }}&amp;{% endif %}return_page=today">Excluir</a></div>{% endif %}</div><div class="activity-amount {{ 'positive' if event.signed_amount > 0 else ('negative' if event.signed_amount < 0 else '') }}">{{ event.signed_amount|brl }}</div></article>{% endfor %}</div>
+    {% else %}<div class="empty-state panel"><h2>Nada neste mês</h2><p>Escolha outro mês no contexto do topo ou registre um lançamento.</p></div>{% endif %}
+  </section>
+</details>
+{% endblock %}

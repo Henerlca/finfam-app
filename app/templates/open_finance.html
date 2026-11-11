@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="open-finance-readonly-note" role="note">
+  <strong>Pluggy somente para conferência.</strong> Saldos e faturas vêm da instituição; esta tela não altera lançamentos. Para investigar diferenças e revisar sugestões, abra Dia a dia. Nenhuma baixa é automática: cada confirmação ou ajuste exige uma ação explícita nessa tela.
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Conexões existentes</p><h2>Atualização das instituições</h2></div></div>
+  <div class="open-finance-controls">
+    <p class="muted">{{ 'A Pluggy coleta os dados bancários automaticamente. Este botão importa para o FinFam a leitura mais recente já disponível; a próxima coleta da instituição aparece em cada conexão.' if ready else 'A ação consulta somente os Items e credenciais configurados; o restante do FinFam funciona sem Open Finance.' }}</p>
+    <form method="post" action="/open-finance/sync">
+      <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}">
+      <button class="button button-primary" type="submit" {% if not has_configured %}disabled{% endif %}>Buscar dados disponíveis</button>
+    </form>
+  </div>
+  {% if sync_result == 'complete' %}<div class="alert alert-good"><strong>Leitura concluída.</strong><span>O FinFam importou a leitura mais recente já disponível na Pluggy. A coleta na instituição segue o horário indicado pela fonte; nenhum lançamento FinFam foi alterado.</span></div>{% elif sync_result == 'partial' %}<div class="alert alert-warning"><strong>Leitura parcial.</strong><span>Alguns Items não puderam ser lidos; os últimos valores disponíveis continuam visíveis com seus horários. Nenhum lançamento FinFam foi alterado.</span></div>{% elif sync_result == 'unavailable' %}<div class="alert alert-warning"><strong>Conexão não configurada.</strong><span>O FinFam continua funcionando sem Open Finance.</span></div>{% endif %}
+  {% if mapping_result == 'saved' %}<div class="alert alert-good"><strong>Vínculo salvo.</strong><span>Isso só habilita a comparação; não altera lançamentos nem saldos.</span></div>{% endif %}
+  {% if review_result == 'confirmed' %}<div class="alert alert-good"><strong>Baixa confirmada.</strong><span>O lançamento FinFam foi confirmado na data da transação bancária; o valor planejado foi mantido.</span></div>{% elif review_result == 'adjusted' %}<div class="alert alert-good"><strong>Competência ajustada e confirmada.</strong><span>Somente o valor desta competência foi ajustado ao valor bancário; a série e outros meses foram preservados.</span></div>{% elif review_result == 'ignored' %}<div class="alert alert-good"><strong>Sugestão ignorada.</strong><span>Nenhum lançamento ou saldo foi alterado.</span></div>{% elif review_result == 'already' %}<div class="alert alert-warning"><strong>Já revisada.</strong><span>Esta transação não foi processada novamente.</span></div>{% endif %}
+  <div class="open-finance-account-grid">
+    {% for connection in connections %}
+    <article class="open-finance-account">
+      <div class="open-finance-account-head"><div><h3>{{ connection.institution }}</h3><small>{{ connection.owner }}</small></div><span class="open-finance-pill {% if connection.status not in ['UPDATED', 'UNKNOWN'] or connection.message %}warning{% endif %}">{{ connection.status_label }}</span></div>
+      {% if connection.message %}<p class="muted">{{ connection.message }}</p>{% endif %}
+      <small>Última leitura FinFam: {{ connection.synced_at_label or 'Ainda não sincronizado' }}</small>
+      {% if connection.provider_updated_at_label %}<small>Última coleta na instituição (informada pela Pluggy): {{ connection.provider_updated_at_label }}</small>{% endif %}
+      <small>Próxima coleta automática indicada pela Pluggy: {{ connection.next_auto_sync_at_label or 'não informada' }}</small>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Dinheiro disponível no banco</p><h2>Saldos em conta</h2><p class="muted">Saldo bancário observado, separado do limite dos cartões.</p></div></div>
+  {% if bank_accounts %}
+  <div class="open-finance-summary"><article class="open-finance-metric bank"><small>Total observado em contas BRL</small><strong>{{ bank_total|brl if bank_total is not none else '—' }}</strong><small>{{ bank_total_count }} conta(s) com saldo · lido em {{ today }}</small></article></div>
+  <div class="open-finance-account-grid">
+    {% for item in bank_accounts %}{% set account = item.row %}
+    <article class="open-finance-account open-finance-account-bank">
+      <div class="open-finance-account-head"><div><h3>{{ account.name }}</h3><small>{{ account.institution }} · {{ account.owner }}</small></div><span class="open-finance-pill {% if item.source_error or item.stale %}warning{% endif %}">{{ 'Dados podem estar desatualizados' if item.source_error or item.stale else 'Saldo do banco' }}</span></div>
+      <strong class="open-finance-balance-large">{{ item.bank_balance|brl if item.bank_balance is not none else 'Indisponível' }}</strong>
+      <small>Saldo informado pela instituição · snapshot {{ item.local_snapshot_date }}</small>
+      {% if item.mapping_name %}
+      <div class="open-finance-reconciliation"><strong>Conferência com {{ item.mapping_name }}</strong>{% if item.finfam_balance is not none %}<span>FinFam (abertura + baixas confirmadas): {{ item.finfam_balance|brl }}</span><span>Diferença (banco − FinFam): {{ item.difference|brl }}</span><small>{{ cash_basis_label }}</small>{% else %}<span>Saldo FinFam indisponível para esta conta nesta competência.</span>{% endif %}</div>
+      {% else %}<p class="open-finance-link-hint">{% if item.mapping_suggestion %}Sugestão de vínculo: {{ item.mapping_suggestion }}. Confirme abaixo para habilitar a comparação.{% else %}Vincule uma conta do FinFam para habilitar a comparação.{% endif %}</p>{% endif %}
+      <form class="open-finance-map-form" method="post" action="/open-finance/map">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="account_id" value="{{ account.account_id }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}">
+        <label>Conta correspondente no FinFam<select name="internal_name"><option value="">Sem vínculo</option>{% for option in item.mapping_options %}<option value="{{ option.name }}" {% if item.mapping_name == option.name or (not item.mapping_name and item.mapping_suggestion == option.name) %}selected{% endif %}>{{ option.name }} · {{ option.owner }}</option>{% endfor %}</select></label><button class="button button-secondary" type="submit">{{ 'Salvar vínculo' if not item.mapping_name else 'Atualizar vínculo' }}</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}<div class="open-finance-empty">Nenhum saldo de conta sincronizado.</div>{% endif %}
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Crédito disponível</p><h2>Limite dos cartões</h2><p class="muted">Limite usado = limite total − limite disponível. Esse valor não é a fatura mensal.</p></div></div>
+  {% if credit_accounts %}
+  <div class="open-finance-summary"><article class="open-finance-metric credit"><small>Total de limite usado observado em BRL</small><strong>{{ credit_total|brl if credit_total is not none else '—' }}</strong><small>{{ credit_total_count }} cartão(ões) com limites completos · lido em {{ today }}</small></article></div>
+  <div class="open-finance-account-grid">
+    {% for item in credit_accounts %}{% set account = item.row %}
+    <article class="open-finance-account open-finance-account-credit">
+      <div class="open-finance-account-head"><div><h3>{{ account.name }}</h3><small>{{ account.institution }} · {{ account.owner }}</small></div><span class="open-finance-pill {% if item.source_error or item.stale %}warning{% endif %}">{{ 'Dados podem estar desatualizados' if item.source_error or item.stale else 'Uso de crédito' }}</span></div>
+      <strong class="open-finance-balance-large">{{ item.credit_used|brl if item.credit_used is not none else 'Indisponível' }}</strong><small>Limite usado (total − disponível) · snapshot {{ item.local_snapshot_date }}</small>
+      <div class="open-finance-account-meta"><small>Limite disponível: {{ item.available_limit|brl if item.available_limit is not none else '—' }}</small><small>Limite total: {{ item.credit_limit|brl if item.credit_limit is not none else '—' }}</small></div>
+      {% if item.mapping_name %}<p class="open-finance-link-hint">Vinculado a {{ item.mapping_name }}. A comparação mensal aparece nas faturas abaixo.</p>{% else %}<p class="open-finance-link-hint">{% if item.mapping_suggestion %}Sugestão de vínculo: {{ item.mapping_suggestion }}. Confirme abaixo para comparar com o planejamento.{% else %}Vincule um cartão do FinFam para comparar as faturas.{% endif %}</p>{% endif %}
+      <form class="open-finance-map-form" method="post" action="/open-finance/map">
+        <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="account_id" value="{{ account.account_id }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}">
+        <label>Cartão correspondente no FinFam<select name="internal_name"><option value="">Sem vínculo</option>{% for option in item.mapping_options %}<option value="{{ option.name }}" {% if item.mapping_name == option.name or (not item.mapping_name and item.mapping_suggestion == option.name) %}selected{% endif %}>{{ option.name }} · {{ option.bank }}</option>{% endfor %}</select></label><button class="button button-secondary" type="submit">{{ 'Salvar vínculo' if not item.mapping_name else 'Atualizar vínculo' }}</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}<div class="open-finance-empty">Nenhum cartão com limite sincronizado.</div>{% endif %}
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Totais e ciclos observados</p><h2>Faturas do cartão</h2><p class="muted">Faturas fechadas mantêm o total oficial Pluggy. Para a competência atual/futura, mostramos compras observadas do ciclo selecionado e do seguinte; ao consultar meses passados, detalhamos a próxima competência quando há linhas disponíveis. Sem dados elegíveis, a tela indica indisponibilidade.</p></div></div>
+  {% for group in invoice_groups %}
+    {% if group.rows %}
+    <details class="open-finance-period" {% if not group.collapsed %}open{% endif %}>
+      <summary>{{ group.label }} <span>{{ group.rows|length }}</span></summary>
+      <div class="open-finance-invoice-grid">
+        {% for item in group.rows %}
+        <article class="open-finance-invoice-card">
+          <div class="open-finance-invoice-head"><div><h3>{{ item.account_name }}</h3><small>{{ item.owner }} · vencimento {{ item.month_label }}</small></div><span class="open-finance-pill {% if item.provider_missing and not item.projection_available %}warning{% endif %}">{{ item.display_amount_label }}</span></div>
+          <strong class="open-finance-invoice-amount">{% if item.display_amount is none %}Não informado{% elif item.currency == 'BRL' %}{{ item.display_amount|brl }}{% else %}{{ item.currency }} {{ item.display_amount }}{% endif %}</strong>
+          {% if item.provider_total is not none %}<small>Fatura fechada retornada pela Pluggy{% if item.closing_dates %} · fechamento {{ item.closing_dates|join(', ') }}{% endif %}{% if item.due_dates %} · vencimento {{ item.due_dates|join(', ') }}{% endif %}</small>{% endif %}
+          {% if item.projected_total is not none %}
+          <div class="open-finance-cycle-details"><strong>Compras observadas no ciclo</strong><span>{{ item.posted_charges|brl }} lançadas pelo banco ({{ item.posted_count }})</span><span>{{ item.pending_charges|brl }} pendentes no banco ({{ item.pending_count }})</span><small>Ciclo {{ item.cycle_start }} a {{ item.cycle_end }} · fecha dia {{ item.closing_day }}{% if item.closing_day_source == 'provider_bill' %} · baseado no fechamento Pluggy de {{ item.provider_closing_date }}{% elif item.closing_day_source == 'configured' %} · fechamento do cartão no FinFam{% else %} · padrão do app{% endif %} · {{ item.installment_count }} compra(s) parcelada(s)</small></div>
+          {% if item.purchase_rows %}
+          <details class="open-finance-purchases" open>
+            <summary>Transações deste ciclo · {{ item.purchase_rows|length }}</summary>
+            <div class="open-finance-purchase-list" role="list">
+              {% for purchase in item.purchase_rows %}
+              <article class="open-finance-purchase-row" role="listitem">
+                <div><strong>{{ purchase.description }}</strong><small>{{ purchase.occurred_on.strftime('%d/%m/%Y') if purchase.occurred_on else 'Data indisponível' }}{% if purchase.category %} · {{ purchase.category }}{% endif %}{% if purchase.installment_number and purchase.total_installments %} · parcela {{ purchase.installment_number }} de {{ purchase.total_installments }}{% endif %}</small></div>
+                <span class="open-finance-purchase-status {{ 'posted' if purchase.status == 'POSTED' else 'pending' }}">{{ 'Lançada pelo banco' if purchase.status == 'POSTED' else 'Pendente no banco' if purchase.status == 'PENDING' else purchase.status }}</span>
+                <strong>{{ purchase.amount|brl }}</strong>
+              </article>
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
+          {% endif %}
+          {% if item.unclassified_count %}<div class="open-finance-cycle-warning">{{ item.unclassified_count }} transação(ões) com moeda, tipo ou estado não reconhecido ficaram fora do total projetado.</div>{% endif %}
+          {% if item.currency != 'BRL' %}<p class="open-finance-link-hint">Comparação FinFam indisponível: os valores estão em {{ item.currency }} e não há conversão cambial automática.</p>{% elif item.finfam_amount is not none %}<div class="open-finance-reconciliation"><strong>Conferência — {{ item.mapping_name }}</strong><span>FinFam planejado: {{ item.finfam_amount|brl }}</span>{% if item.difference is not none %}<span>{{ 'Pluggy menos FinFam' if item.comparison_source == 'bill' else 'Projeção Open Finance menos FinFam' }}: {{ item.difference|brl }}</span>{% else %}<span>Comparação indisponível para esta competência.</span>{% endif %}</div>{% else %}<p class="open-finance-link-hint">Vincule o cartão correspondente acima para comparar com a previsão do FinFam.</p>{% endif %}
+          {% if item.provider_missing and item.projected_total is none %}<div class="open-finance-empty-inline">A Pluggy não informou fatura fechada nem compras suficientes para projetar este ciclo.</div>{% endif %}
+          {% if item.source_updated_at_label %}<small>Fonte atualizada em {{ item.source_updated_at_label }}</small>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  {% endfor %}
+</section>
+
+<section class="section-block">
+  <div class="section-heading"><div><p class="eyebrow">Operações recebidas</p><h2>Transações recentes</h2></div></div>
+  <p class="open-finance-feed-note">Somente consulta à Pluggy. Revise cada sugestão aqui. Confirmar, ajustar ou ignorar exige sua ação; abrir um lançamento manual não grava nada até você salvar. O banco nunca recebe comandos de escrita.</p>
+  {% if external_transactions %}
+  <details class="open-finance-transaction-feed">
+    <summary>Mostrar {{ external_transactions|length }} transações recentes</summary>
+    <p class="open-finance-feed-note">Somente as 12 transações mais recentes. PENDING nunca confirma baixa. Transferências internas, pagamentos agregados e moedas diferentes de BRL exigem conferência manual.</p>
+    <div class="open-finance-list">
+      {% for item in external_transactions %}
+      <article class="open-finance-transaction">
+        <div><strong>{{ item.row.description }}</strong><small>{{ item.row.occurred_on }} · {{ item.account_name }}{% if item.institution %} · {{ item.institution }}{% endif %}{% if item.owner %} · {{ item.owner }}{% endif %}</small><small>{{ item.status_label }}{% if item.row.category %} · {{ item.row.category }}{% endif %}</small></div>
+        <strong class="external-amount">{% if item.currency_code == 'BRL' %}{{ item.row.amount|brl }}{% elif item.currency_code %}{{ item.currency_code }} {{ item.row.amount }}{% else %}{{ item.row.amount }} · moeda não informada{% endif %}</strong>
+        {% if item.review and item.review.state == 'reviewed' %}<div class="external-suggestion">Revisada anteriormente: {% if item.review.decision == 'ignored' %}sugestão ignorada{% elif item.review.decision == 'adjusted_and_confirmed' %}competência ajustada e baixa confirmada{% else %}baixa confirmada{% endif %}. Nenhuma ação repetida.</div>
+        {% elif item.currency_code and item.currency_code != 'BRL' %}<div class="external-suggestion">Sem sugestão automática: transação em {{ item.currency_code }}. Não há conversão cambial nem comparação com FinFam.</div>
+        {% elif item.review and item.review.state == 'candidate' %}{% set candidate = item.review.candidate %}<div class="external-suggestion"><strong>Possível correspondência · revisar</strong><span>{{ candidate.description }} · {{ candidate.type }} · {{ candidate.date }} · FinFam {{ candidate.amount|brl }} · banco {{ candidate.external_amount|brl }} · diferença {{ candidate.difference|brl }}</span>{% if item.row.status|upper == 'PENDING' %}<small>O banco ainda marca a operação como PENDING; aguarde POSTED para confirmar.</small>{% elif item.review.block_reason %}<small>{{ item.review.block_reason }}</small>{% endif %}
+          <form method="post" action="/open-finance/review" class="open-finance-review-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="transaction_id" value="{{ item.row.transaction_id }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}">
+            {% if item.review.can_confirm %}{% if candidate.difference == 0 %}<button class="button button-primary" type="submit" name="action" value="confirm">Confirmar baixa</button>{% else %}<button class="button button-secondary" type="submit" name="action" value="confirm">Confirmar sem alterar o valor planejado</button>{% if item.can_adjust %}<button class="button button-primary" type="submit" name="action" value="adjust_confirm">Ajustar só esta competência para {{ candidate.external_amount|brl }} e confirmar</button>{% else %}<small>Para alinhar valores, edite a ocorrência manualmente antes de confirmar.</small>{% endif %}{% endif %}{% endif %}<button class="button button-secondary" type="submit" name="action" value="ignore">Ignorar sugestão</button>
+          </form></div>
+        {% elif item.review and item.review.state == 'already_confirmed' %}<div class="external-suggestion">Há um lançamento compatível já confirmado no FinFam. Confira para evitar duplicidade.</div>
+        {% elif item.review and item.review.state == 'ambiguous' %}<div class="external-suggestion"><strong>Correspondência ambígua.</strong>{% for candidate in item.review.candidates %}<span>{{ candidate.description }} · {{ candidate.date }} · FinFam {{ candidate.amount|brl }} · diferença {{ candidate.difference|brl }}</span>{% endfor %}<small>Há candidatos concorrentes; nenhuma baixa será feita até a conferência manual.</small><form method="post" action="/open-finance/review" class="open-finance-review-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="transaction_id" value="{{ item.row.transaction_id }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}"><button class="button button-secondary" type="submit" name="action" value="ignore">Ignorar sugestão</button></form></div>
+        {% elif item.suggestion and item.suggestion.ambiguous %}<div class="external-suggestion"><strong>Correspondência de cartão ambígua.</strong>{% for card_candidate in item.suggestion.candidates %}<span>{{ card_candidate.description }} · parcela {{ card_candidate.installment_number }}/{{ card_candidate.total_installments }} · fatura {{ card_candidate.invoice_month }} · FinFam {{ card_candidate.amount|brl }} · banco {{ card_candidate.external_amount|brl }}</span>{% endfor %}<small>Revise manualmente; nenhuma baixa foi feita.</small><form method="post" action="/open-finance/review" class="open-finance-review-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="transaction_id" value="{{ item.row.transaction_id }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}"><button class="button button-secondary" type="submit" name="action" value="ignore">Ignorar sugestão</button></form></div>
+        {% elif item.suggestion and item.suggestion.candidate %}{% set card_candidate = item.suggestion.candidate %}<div class="external-suggestion"><strong>Possível compra na fatura {{ card_candidate.invoice_month }}</strong><span>{{ card_candidate.description }}{% if card_candidate.category %} · {{ card_candidate.category }}{% endif %} · cartão {{ item.mapped_name }} · fechamento dia {{ card_candidate.closing_day }} · parcela {{ card_candidate.installment_number }}/{{ card_candidate.total_installments }} · FinFam {{ card_candidate.amount|brl }} · banco {{ card_candidate.external_amount|brl }}</span><small>É apenas uma associação para conferência. Compra no cartão não dá baixa individual; a baixa financeira ocorre no pagamento da fatura.{% if item.row.status|upper == 'PENDING' %} A transação continua PENDING.{% endif %}</small><form method="post" action="/open-finance/review" class="open-finance-review-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="transaction_id" value="{{ item.row.transaction_id }}"><input type="hidden" name="_context_month" value="{{ nav.month }}"><input type="hidden" name="_context_person" value="{{ nav.person }}"><input type="hidden" name="_context_horizon" value="{{ nav.horizon }}"><button class="button button-secondary" type="submit" name="action" value="ignore">Ignorar sugestão</button></form></div>
+        {% elif item.review and item.review.reason == 'unlinked' %}<div class="external-suggestion">Conta sem vínculo: associe-a ao cadastro FinFam antes de comparar sugestões.</div>
+        {% elif item.can_register %}<div class="external-suggestion">Sem correspondência segura. <a href="{{ item.registration_url }}">Revisar e lançar manualmente no FinFam</a>. O formulário abre sem salvar.</div>
+        {% elif item.registration_block_reason %}<div class="external-suggestion">Não há lançamento rápido sugerido: {{ 'pode ser pagamento de fatura' if item.registration_block_reason == 'possible_card_invoice' else 'pode ser transferência interna' }}. Revise manualmente antes de registrar.</div>
+        {% else %}<div class="external-suggestion">Sem correspondência segura. Revise os dados e faça o lançamento manual em Movimentações.</div>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </details>
+  {% else %}<div class="open-finance-empty">Nenhuma transação recente sincronizada.</div>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% macro goal_fields(goal, categories, csrf, month, person, horizon) %}
+<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ goal.get('id','') }}">
+<input type="hidden" name="_context_month" value="{{ month }}"><input type="hidden" name="_context_person" value="{{ person }}"><input type="hidden" name="_context_horizon" value="{{ horizon }}">
+<div class="form-grid compact-grid">
+<label>Nome<input name="name" maxlength="120" value="{{ goal.get('name','') }}" required></label>
+<label>Categoria de Caixinha<select name="category" required>{% for category in categories %}<option value="{{ category }}" {% if category == goal.get('category') %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></label>
+<label>Alvo (R$)<input type="number" name="target_amount" min="0.01" step="0.01" value="{{ goal.get('target_amount','') }}" required></label>
+<label>Prazo<input type="month" name="target_month" value="{{ goal.get('target_month','')[:7] }}" required></label>
+<label>Saldo anterior (opcional)<input type="number" name="opening_amount" min="0" step="0.01" value="{{ goal.get('opening_amount') if goal.get('opening_amount') is not none else '' }}" placeholder="Vazio se desconhecido"></label>
+<label>Saldo anterior ao início de<input type="month" name="opening_month" value="{{ (goal.get('opening_month') or '')[:7] }}"></label>
+</div>
+{% endmacro %}
+{% macro goal_form(goal, categories, csrf, month, person, horizon, submit_label) %}
+<form method="post" action="/goals/save">{{ goal_fields(goal,categories,csrf,month,person,horizon) }}
+  <p class="goal-saving-note"><strong>Antes de salvar:</strong> esta meta acompanha uma Caixinha existente. O app não fará aportes automáticos; os lançamentos continuam sob controle da família.</p>
+  <button class="button button-primary" type="submit">{{ submit_label }}</button>
+</form>
+{% endmacro %}
+{% block content %}
+{% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+<div class="section-heading"><div><p class="eyebrow">Planejamento compartilhado</p><h2>Metas da família</h2></div><span class="status-pill status-neutral">Nenhum aporte automático</span></div>
+{% if goals %}
+<section class="goal-grid-v5" aria-label="Metas da família">
+{% for entry in goals %}{% set goal=entry.goal %}{% set p=entry.progress %}
+{% set saved_amount = p.known_balance|default(0, true) %}{% set target_amount = p.target_amount|default(0, true) %}{% set progress_value = [target_amount, [0, saved_amount]|max]|min %}{% set progress_percent = (progress_value / target_amount * 100) if target_amount > 0 else 0 %}
+{% set milestone = namespace(value=target_amount, label='Meta alcançada') %}
+{% if target_amount > 0 and progress_value < target_amount %}
+  {% set milestone.value = target_amount * 0.25 %}{% set milestone.label = '25% da meta' %}
+  {% if progress_value >= milestone.value %}{% set milestone.value = target_amount * 0.50 %}{% set milestone.label = '50% da meta' %}{% endif %}
+  {% if progress_value >= milestone.value %}{% set milestone.value = target_amount * 0.75 %}{% set milestone.label = '75% da meta' %}{% endif %}
+  {% if progress_value >= milestone.value %}{% set milestone.value = target_amount %}{% set milestone.label = 'meta completa' %}{% endif %}
+{% endif %}
+<article class="panel goal-card-v5">
+  <p class="eyebrow">{{ goal.category }}</p><h2>{{ goal.name }}</h2>
+  <strong class="goal-current-balance">{{ saved_amount|brl }}</strong><p class="goal-as-of">Guardado conhecido · {{ p.as_of|month_label }}</p>
+  {% if goal.opening_amount is none %}<span class="status-pill status-neutral">Saldo anterior não informado</span>{% endif %}
+  <p class="goal-target-line">Alvo <strong>{{ target_amount|brl }}</strong> até {{ p.target_month|month_label }}</p>
+  <progress class="goal-progress-track" max="100" value="{{ progress_percent|round(0) }}" aria-label="Progresso da meta {{ goal.name }}: {{ progress_percent|round(0) }} por cento"></progress>
+  <div class="goal-progress-meta"><span>Progresso guardado</span><strong>{{ progress_percent|round(0) }}%</strong></div>
+  <div class="detail-grid goal-stats-v5"><div><span>Guardado</span><strong>{{ saved_amount|brl }}</strong></div><div><span>Falta</span><strong>{{ p.remaining|default(0, true)|brl }}</strong></div><div><span class="goal-next-milestone">Próximo marco · {{ milestone.label }}</span><strong>{{ milestone.value|brl }}</strong></div></div>
+  <span class="status-pill {{ 'status-good' if p.on_track else 'status-warning' }}">{{ p.status }}{% if p.contribution_fits is sameas false %} · exige revisão da folga{% endif %}</span>
+  <details><summary>Editar meta</summary>{{ goal_form(goal,categories,csrf,nav_context.month,nav_context.person,nav_context.horizon,'Salvar meta') }}</details>
+  <form class="goal-delete-form" method="post" action="/goals/{{ goal.id }}/delete" onsubmit="return confirm('Excluir somente a meta? Os lançamentos permanecem.');"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="_context_month" value="{{ nav_context.month }}"><input type="hidden" name="_context_person" value="{{ nav_context.person }}"><input type="hidden" name="_context_horizon" value="{{ nav_context.horizon }}"><button class="button button-quiet" type="submit">Excluir meta</button></form>
+</article>
+{% endfor %}
+</section>
+<section class="panel section-block"><div class="section-heading"><div><p class="eyebrow">Planejamento</p><h2>Adicionar outra meta</h2></div></div>
+  <p class="goal-form-note">A nova meta acompanha o saldo já existente da Caixinha e não cria aportes por conta própria.</p>
+  <details class="goal-create-details"><summary class="button button-secondary">Adicionar nova meta</summary>{% if categories %}{{ goal_form({},categories,csrf,nav_context.month,nav_context.person,nav_context.horizon,'Criar meta')}}{% else %}<p>Cadastre um lançamento de Caixinha com categoria antes de criar a meta.</p><a class="button button-secondary" href="/transactions/new?{{ nav_query }}">Criar lançamento</a>{% endif %}</details>
+</section>
+{% else %}
+<section class="panel goals-empty" aria-labelledby="goals-empty-title">
+  <div><p class="eyebrow">Um objetivo por vez</p><h2 id="goals-empty-title">Transforme uma Caixinha em um plano visível</h2><p>Escolha um valor e um prazo para acompanhar o que a família já guardou, sem confundir previsão com um novo lançamento.</p>
+    <details class="goal-create-details"><summary class="button button-primary">Criar primeira meta</summary>{% if categories %}{{ goal_form({},categories,csrf,nav_context.month,nav_context.person,nav_context.horizon,'Salvar primeira meta')}}{% else %}<p>Cadastre um lançamento de Caixinha com categoria antes de criar a meta.</p><a class="button button-secondary" href="/transactions/new?{{ nav_query }}">Criar lançamento</a>{% endif %}</details>
+  </div>
+  <div class="goal-example"><p class="eyebrow">Exemplo simples</p><strong>Viagem · alvo de R$ 2.000</strong><p>Acompanhe o saldo conhecido e veja quanto falta até o prazo. Os aportes continuam sendo lançados manualmente.</p></div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,86 @@
+{% set daily_items = review_items|default(items|default(pending_items|default([], true), true), true) %}
+{% set daily_summary = review_summary|default({}, true) %}
+{% set visible_summary = review_visible_summary|default({}, true) %}
+{% set review_filter_values = review_filters|default({}, true) %}
+{% set review_return_to = return_to|default('/today', true) %}
+{% set review_status = review_filter_values.state|default(review_filter_values.status|default(current_status|default(status_filter|default('all', true), true), true), true) %}
+{% set review_q = review_filter_values.q|default(current_q|default(query|default('', true), true), true) %}
+{% set review_bank = review_filter_values.bank|default(current_bank|default(bank_filter|default(bank|default('', true), true), true), true) %}
+{% set review_month = review_month|default(month|default(context_month|default('', true), true), true) %}
+{% set review_person = review_person|default(context_person|default(person|default('Família', true), true), true) %}
+{% set review_horizon = context_horizon|default(horizon|default('12', true), true) %}
+{% set item_return_page = 'today' %}
+{% set fallback_counts = namespace(confirmed=0, pending=0, predicted=0) %}
+{% for fallback_item in daily_items %}{% if fallback_item.paid %}{% set fallback_counts.confirmed = fallback_counts.confirmed + 1 %}{% elif fallback_item.date_precision|default('exact', true) == 'exact' %}{% set fallback_counts.pending = fallback_counts.pending + 1 %}{% else %}{% set fallback_counts.predicted = fallback_counts.predicted + 1 %}{% endif %}{% endfor %}
+{% set saved_count = request.query_params.get('saved', '') if request is defined and request else '' %}
+{% set undone_count = request.query_params.get('undone', '') if request is defined and request else '' %}
+{% set saved_item = request.query_params.get('saved_item', '') if request is defined and request else '' %}
+
+<section class="daily-review panel" id="daily-review" aria-labelledby="daily-review-title">
+  <div class="section-heading daily-review-heading">
+    <div>
+      <p class="eyebrow">Revisão cotidiana · {{ review_month|month_label }}</p>
+      <h2 id="daily-review-title">Dia a dia e Caixa no mesmo lugar</h2>
+      <p class="daily-review-intro">Confira o que aconteceu, separe o que é previsão e confirme somente depois de revisar.</p>
+    </div>
+  </div>
+
+  {% if saved_count %}
+  <div class="alert alert-good daily-review-notice" role="status" aria-live="polite"><strong>{{ saved_count }} item(ns) salvo(s).</strong><span>A confirmação foi registrada explicitamente.{% if saved_item %} <a class="text-link" href="#daily-item-{{ saved_item|replace(':', '-') }}">Ir ao item e desfazer se necessário</a>.{% endif %}</span></div>
+  {% elif undone_count %}
+  <div class="alert alert-good daily-review-notice" role="status" aria-live="polite"><strong>{{ undone_count }} confirmação(ões) desfeita(s).</strong><span>O item voltou a aparecer como pendente ou previsto.</span></div>
+  {% endif %}
+
+  <div class="daily-review-counts" aria-label="Resumo da revisão">
+    <span class="daily-review-count daily-review-count-confirmed"><strong>{{ daily_summary.confirmed|default(visible_summary.confirmed|default(fallback_counts.confirmed, true), true) }}</strong> confirmados</span>
+    <span class="daily-review-count daily-review-count-pending"><strong>{{ daily_summary.pending|default(visible_summary.pending|default(fallback_counts.pending, true), true) }}</strong> pendentes</span>
+    <span class="daily-review-count daily-review-count-predicted"><strong>{{ daily_summary.predicted|default(visible_summary.predicted|default(fallback_counts.predicted, true), true) }}</strong> previstos</span>
+  </div>
+
+  <p class="daily-review-filter-hint">A busca, a conta e a situação selecionadas acima também filtram esta fila; os totais do mês permanecem completos.</p>
+  {% if status_change_reason %}<div class="alert alert-warning daily-review-lock" role="status"><strong>{{ status_change_reason }}</strong>{% if 'fechada' in status_change_reason %}<a class="text-link" href="/today?month={{ review_month }}&amp;person={{ review_person }}&amp;horizon={{ review_horizon }}#cash-overview">Reabrir o mês</a>{% endif %}</div>{% endif %}
+
+  {% if daily_items %}
+  {% if status_change_allowed %}
+  <form id="daily-review-batch-form" method="post" action="/daily/review/batch" class="daily-review-batch" aria-describedby="daily-review-batch-note">
+    <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="return_to" value="{{ review_return_to }}"><input type="hidden" name="month" value="{{ review_month }}"><input type="hidden" name="person" value="{{ review_person }}"><input type="hidden" name="horizon" value="{{ review_horizon }}"><input type="hidden" name="q" value="{{ review_q }}"><input type="hidden" name="bank" value="{{ review_bank }}"><input type="hidden" name="status" value="{{ review_status }}"><input type="hidden" name="from" value="{{ start|default('', true) }}"><input type="hidden" name="to" value="{{ end|default('', true) }}">
+    <div class="daily-review-batch-actions"><button class="button button-primary" type="submit" name="action" value="confirm">Confirmar selecionados seguros</button><span>Itens previstos ou com data futura ficam fora do lote. Nenhuma baixa futura é presumida.</span></div>
+    <div class="daily-review-batch-head"><strong>Selecionar confirmações seguras</strong><label class="daily-review-paid-date">Data da baixa (opcional)<input type="date" name="paid_on" value=""></label></div>
+    <p id="daily-review-batch-note" class="daily-review-note">Previsões futuras exigem conferência individual antes de serem confirmadas.</p>
+  </form>
+  {% endif %}
+  <div class="daily-review-list">
+      {% set group_state = namespace(current='') %}
+      {% for item in daily_items %}
+      {% set item_anchor = item.item_key|replace(':', '-') %}
+      {% if item.review_group_key|default('other', true) != group_state.current %}
+      {% set group_state.current = item.review_group_key|default('other', true) %}
+      <h3 class="daily-review-group-heading"><span>{{ item.review_group_label|default('Lançamentos', true) }}</span><span>{{ item.review_group_count|default(1, true) }}</span></h3>
+      {% endif %}
+      <article class="daily-review-item {% if item.paid %}daily-review-item-confirmed{% endif %}" id="daily-item-{{ item_anchor }}">
+        <div class="daily-review-select">{% if status_change_allowed and item.batch_confirmable|default(false) %}<input type="checkbox" form="daily-review-batch-form" name="item_key" value="{{ item.item_key }}" aria-label="Selecionar {{ item.description }}">{% else %}<span class="daily-review-select-empty" aria-hidden="true">—</span>{% endif %}</div>
+        <div class="daily-review-item-main"><div class="daily-review-item-title"><strong>{{ item.description }}</strong><span class="status-pill {% if item.review_state == 'confirmed' %}status-good{% elif item.review_state == 'pending' %}status-risk{% else %}status-neutral{% endif %}">{{ item.review_label }}</span></div><small>{{ item.account }} · {{ item.type }} · {{ item.member }}</small><small class="daily-review-date">{{ item.transaction_date|day }}{% if item.date_precision == 'recurrence' %} · previsão recorrente{% endif %} · {{ item.status_origin_label }}</small></div>
+        <div class="daily-review-amount">{{ item.amount|brl }}</div>
+        <div class="daily-review-item-actions">
+          {% if status_change_allowed %}
+          <form method="post" action="/cash/status" class="daily-review-item-form">
+            <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="_context_month" value="{{ review_month }}"><input type="hidden" name="_context_person" value="{{ review_person }}"><input type="hidden" name="_context_horizon" value="{{ review_horizon }}"><input type="hidden" name="month" value="{{ review_month }}"><input type="hidden" name="person" value="{{ review_person }}"><input type="hidden" name="horizon" value="{{ review_horizon }}"><input type="hidden" name="return_to" value="{{ review_return_to }}"><input type="hidden" name="item_key" value="{{ item.item_key }}"><input type="hidden" name="q" value="{{ review_q }}"><input type="hidden" name="bank" value="{{ review_bank }}"><input type="hidden" name="status" value="{{ review_status }}"><input type="hidden" name="from" value="{{ start|default('', true) }}"><input type="hidden" name="to" value="{{ end|default('', true) }}"><label class="daily-review-paid-date">{% if item.requires_paid_on %}Data real da baixa (obrigatória){% else %}Data da baixa (opcional){% endif %}<input type="date" name="paid_on" max="{{ status_today }}" value="{{ item.paid_on|default(status_today if not item.paid and not item.requires_paid_on else '', true) }}" {% if item.requires_paid_on %}required{% endif %}></label>{% if item.requires_paid_on %}<small class="daily-review-note">A data prevista ainda não chegou; informe quando o pagamento ocorreu.</small>{% endif %}{% if item.paid %}<button class="button button-quiet" type="submit">Desfazer confirmação</button>{% else %}<input type="hidden" name="paid" value="on"><button class="button button-primary" type="submit">{% if item.requires_paid_on %}Confirmar após informar a data{% else %}Confirmar hoje{% endif %}</button>{% endif %}
+          </form>
+          {% endif %}
+          {% set invoice_key = item.item_key|default('', true) %}
+          {% if item.type == 'Fatura cartão' and ':invoice:' in invoice_key %}
+          {% set review_card_name = invoice_key.split(':invoice:', 1)[1] %}
+          <a class="text-link daily-review-quick-link" href="/cards/calendar?month={{ review_month }}&amp;person={{ review_person|urlencode }}&amp;horizon={{ review_horizon }}&amp;card={{ review_card_name|urlencode }}">Ver compras</a>
+          {% elif item.transaction_id|default(none) %}
+          <a class="text-link daily-review-quick-link" href="/transactions/{{ item.transaction_id }}/edit?month={{ review_month }}&amp;person={{ review_person|urlencode }}&amp;horizon={{ review_horizon }}&amp;return_page={{ item_return_page }}">Editar</a>
+          <a class="text-link negative daily-review-quick-link" href="/transactions/{{ item.transaction_id }}/delete?month={{ review_month }}&amp;person={{ review_person|urlencode }}&amp;horizon={{ review_horizon }}&amp;return_page={{ item_return_page }}">Excluir</a>
+          {% endif %}
+          {% if item.transaction_id|default(none) and item.type in ['Receita', 'Fixo', 'Caixinha', 'Saque Caixinha', 'Transf. Env.', 'Transf. Receb.'] and not closed|default(false) %}<a class="text-link" href="/transactions/{{ item.transaction_id }}/occurrence?month={{ review_month }}&person={{ review_person }}&horizon={{ review_horizon }}">Ajustar valor só deste mês</a>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state daily-review-empty"><h3>Nenhum item nesta revisão</h3><p>Use a busca ou troque a situação. Previsões continuam separadas de confirmações.</p></div>
+  {% endif %}
+</section>

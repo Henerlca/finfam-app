@@ -1,0 +1,36 @@
+.chart-viewport[data-chart-interactive] { position: relative; }
+.chart-viewport[data-chart-interactive]:focus-visible { outline: 2px solid #256da8; outline-offset: 3px; border-radius: 8px; }
+.chart-crosshair { stroke: #47677e; stroke-width: 1; stroke-dasharray: 4 4; pointer-events: none; }
+.chart-crosshair[hidden] { display: none; }
+.finance-chart .chart-point-active { stroke: #123b63; stroke-width: 3; }
+.chart-tooltip {
+  position: fixed;
+  z-index: 90;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 20px));
+  max-height: calc(100dvh - 20px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #bdd1e3;
+  border-radius: 12px;
+  background: #fff;
+  color: #123b63;
+  box-shadow: 0 8px 28px rgba(18, 59, 99, .2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.chart-tooltip[hidden] { display: none; }
+.chart-tooltip-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid #e2eaf1; }
+.chart-tooltip-heading > strong { font-size: 13px; }
+.chart-tooltip-heading button { flex: 0 0 auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: #edf5fb; color: #123b63; font-size: 20px; cursor: pointer; }
+.chart-tooltip ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.chart-tooltip li { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.chart-tooltip li > span { display: grid; min-width: 0; gap: 1px; overflow-wrap: anywhere; }
+.chart-tooltip li small { color: #47677e; font-size: 10px; }
+.chart-tooltip li strong { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-interaction-hint { margin: 6px 4px; color: #47677e; font-size: 10px; }
+@media (max-width: 380px) {
+  .chart-tooltip { padding: 10px; font-size: 11px; }
+  .chart-tooltip li { gap: 10px; }
+}

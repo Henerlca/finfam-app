@@ -1,0 +1,20 @@
+# Local secrets and user financial data
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local editors and operating-system files
+.DS_Store
+.idea/
+.vscode/
